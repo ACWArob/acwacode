@@ -103,7 +103,7 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
       type: "info",
       title: "Update ready",
       message: `${describeUpdate(updateState.downloadedVersion ?? updateState.availableVersion)} is ready to install.`,
-      detail: "acwacode will restart to install it. Any running tasks will be interrupted.",
+      detail: "acwa desk will restart to install it. Any running tasks will be interrupted.",
       buttons: ["Restart", "Later"],
       defaultId: 0,
       cancelId: 1,

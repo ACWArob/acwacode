@@ -2740,8 +2740,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "acwacode (Nightly)"
-    : (desktopPackageJson.productName ?? "acwacode");
+    ? "acwa desk (Nightly)"
+    : (desktopPackageJson.productName ?? "acwa desk");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2817,19 +2817,19 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
         // macOS 26 offers Messages/Mail codes in every text field unless opted out.
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
         NSLocalNetworkUsageDescription:
-          "acwacode connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
+          "acwa desk connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
         NSCalendarsUsageDescription:
-          "Commands you run in acwacode may need access to your calendars.",
+          "Commands you run in acwa desk may need access to your calendars.",
         NSCalendarsFullAccessUsageDescription:
-          "Commands you run in acwacode may need to read and write your calendar events.",
+          "Commands you run in acwa desk may need to read and write your calendar events.",
         NSCalendarsWriteOnlyAccessUsageDescription:
-          "Commands you run in acwacode may need to add events to your calendars.",
+          "Commands you run in acwa desk may need to add events to your calendars.",
         NSScreenCaptureUsageDescription:
-          "acwacode captures the active window when you use the window capture shortcut.",
+          "acwa desk captures the active window when you use the window capture shortcut.",
         NSCameraUsageDescription:
-          "acwacode lets commands run by terminals and coding agents use the camera.",
+          "acwa desk lets commands run by terminals and coding agents use the camera.",
         NSMicrophoneUsageDescription:
-          "acwacode lets commands run by terminals and coding agents use the microphone.",
+          "acwa desk lets commands run by terminals and coding agents use the microphone.",
         // macOS lists an app under Default web browser only when it opens web
         // pages as documents as well as http and https links (see protocols).
         CFBundleDocumentTypes: [
@@ -2843,7 +2843,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "acwacode",
+          name: "acwa desk",
           schemes: ["t3code", "t3code-dev"],
         },
         {
@@ -2896,7 +2896,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       maintainer: "T3 Tools <hello@t3.codes>",
       protocols: [
         {
-          name: "acwacode",
+          name: "acwa desk",
           schemes: ["t3code", "t3code-dev"],
         },
       ],
@@ -3896,7 +3896,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
-      "acwacode is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
+      "acwa desk is an open-source desktop app for coding agents. Work with your existing agent subscriptions, review code changes, and run commands in your projects. Connect from desktop, web, or mobile to continue working remotely.",
     license: "MIT",
     homepage: "https://t3.codes",
     author: "T3 Tools",
@@ -4217,7 +4217,7 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
     Flag.optional,
   ),
 }).pipe(
-  Command.withDescription("Build a desktop artifact for acwacode."),
+  Command.withDescription("Build a desktop artifact for acwa desk."),
   Command.withHandler((input) => Effect.flatMap(resolveBuildOptions(input), buildDesktopArtifact)),
 );
 

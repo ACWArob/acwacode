@@ -85,7 +85,7 @@ export class DesktopEnvironment extends Context.Service<
   }
 >()("@t3tools/desktop/app/DesktopEnvironment") {}
 
-const APP_BASE_NAME = "acwacode";
+const APP_BASE_NAME = "acwa desk";
 
 function resolveDesktopAppStageLabel(input: {
   readonly isDevelopment: boolean;

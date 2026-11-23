@@ -13,7 +13,7 @@ const repoRoot = NodePath.resolve(desktopDir, "..", "..");
 const devBundleIdSuffix = NodePath.basename(repoRoot)
   .toLowerCase()
   .replaceAll(/[^a-z0-9]+/g, "");
-const APP_DISPLAY_NAME = isDevelopment ? "acwacode (Dev)" : "acwacode (Beta)";
+const APP_DISPLAY_NAME = isDevelopment ? "acwa desk (Dev)" : "acwa desk (Beta)";
 const APP_BUNDLE_ID = isDevelopment
   ? `com.t3tools.t3code.dev.${devBundleIdSuffix || "local"}`
   : "com.t3tools.t3code";
@@ -268,8 +268,8 @@ function resolveMacBundleInfoPlistStrings(executableName) {
     CFBundleExecutable: executableName,
     CFBundleIconFile: "icon.icns",
     NSScreenCaptureUsageDescription:
-      "acwacode captures the active window when you use the snapshot shortcut.",
-    NSDocumentsFolderUsageDescription: "acwacode reads project files you open in the desktop app.",
+      "acwa desk captures the active window when you use the snapshot shortcut.",
+    NSDocumentsFolderUsageDescription: "acwa desk reads project files you open in the desktop app.",
   };
 }
 

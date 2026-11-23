@@ -380,7 +380,7 @@ export const T3_CHAT_THEME: ThemeDefinition = {
 
 const ACWA_THEME: ThemeDefinition = {
   id: "acwa",
-  label: "acwacode",
+  label: "acwa desk",
   appearance: "light",
   colors: {
     canvas: "#faf9f5",

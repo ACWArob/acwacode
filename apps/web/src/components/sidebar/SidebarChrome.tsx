@@ -146,7 +146,7 @@ function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
         onBackdrop ? "text-white" : "text-foreground",
       )}
     >
-      acwacode
+      acwa desk
     </span>
   );
 }

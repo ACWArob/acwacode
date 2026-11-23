@@ -42,7 +42,7 @@ function WorkspaceLabel() {
       >
         C
       </span>
-      <span className="font-mono text-12_5">acwacode</span>
+      <span className="font-mono text-12_5">acwa desk</span>
       {pillLabel ? (
         <Badge data-environment-identification="pill" size="sm" variant="secondary">
           {pillLabel}
