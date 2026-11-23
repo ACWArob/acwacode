@@ -5,7 +5,11 @@ import * as HtmlRender from "../../../htmlRender/HtmlRender.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
 import * as McpToolAccess from "../../McpToolAccess.ts";
 import { loadCaller } from "../../threadAccess.ts";
+import { renderStudyQuizHtml, studyQuizProblem } from "./studyQuiz.ts";
 import { HtmlPreviewToolkit, HtmlRenderToolkit, type HtmlToolkit } from "./tools.ts";
+
+// The frame fits to the live page; this is only the first paint before it measures.
+const STUDY_QUIZ_INITIAL_HEIGHT = 420;
 
 const INVALID_PAGE_ERRORS = new Set([
   "HtmlRenderFileError",
@@ -83,6 +87,30 @@ const handlers = {
       };
     }),
   ),
+  study_quiz: McpToolAccess.actsAsCaller((input) =>
+    Effect.gen(function* () {
+      const problem = studyQuizProblem(input);
+      if (problem !== null) {
+        return yield* new OrchestratorMcpFailure({ code: "invalid_request", message: problem });
+      }
+      const scope = yield* McpInvocationContext.McpInvocationContext;
+      const { thread } = yield* McpInvocationContext.requireThreadScope(scope, "study_quiz");
+      const htmlRender = yield* HtmlRender.HtmlRender;
+      const reference = yield* htmlRender
+        .publish({
+          html: renderStudyQuizHtml(input),
+          threadId: thread.threadId,
+          title: input.title,
+          height: STUDY_QUIZ_INITIAL_HEIGHT,
+        })
+        .pipe(Effect.mapError(toFailure));
+      return {
+        htmlRender: reference,
+        message:
+          "The quiz is shown to the user above your reply. Don't list the questions or answers; at most say one line about what it covers.",
+      };
+    }),
+  ),
 } satisfies McpToolAccess.Handlers<typeof HtmlToolkit.tools>;
 
 export const layerPreview = McpToolAccess.toLayer(HtmlPreviewToolkit, {
@@ -91,4 +119,5 @@ export const layerPreview = McpToolAccess.toLayer(HtmlPreviewToolkit, {
 
 export const layerRender = McpToolAccess.toLayer(HtmlRenderToolkit, {
   html_render: handlers.html_render,
+  study_quiz: handlers.study_quiz,
 });

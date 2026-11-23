@@ -113,8 +113,58 @@ const HtmlRenderTool = Tool.make(HTML_RENDER_TOOL_NAME, {
   .annotate(Tool.OpenWorld, true)
   .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
+const StudyQuizQuestion = Schema.Struct({
+  prompt: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(4_000)),
+  options: Schema.Array(
+    Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(1_000)),
+  ).check(Schema.isMinLength(2), Schema.isMaxLength(8)),
+  answer: Schema.Int.annotate({ description: "0-based index of the right option." }),
+  explanation: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(4_000)).annotate({
+    description: "Why the right option is right, in plain words. Shown after the user answers.",
+  }),
+  hint: Schema.optional(
+    Schema.String.check(Schema.isMaxLength(1_000)).annotate({
+      description: "A nudge that does not give the answer away.",
+    }),
+  ),
+});
+
+const StudyQuizTool = Tool.make("study_quiz", {
+  description:
+    "Show an interactive multiple-choice quiz inline in this thread: one question at a time, instant right/wrong with your explanation, optional hints, a score, retry-missed, and a flashcard view. Use when the user asks for a quiz, MCQs, flashcards, or practice questions. Do not restate the questions in your reply.",
+  parameters: Schema.Struct({
+    title: Schema.String.check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(HTML_RENDER_MAX_TITLE_LENGTH),
+    ),
+    questions: Schema.Array(StudyQuizQuestion).check(Schema.isMinLength(1), Schema.isMaxLength(50)),
+  }),
+  success: Schema.Struct({
+    htmlRender: Schema.Struct({
+      attachmentId: Schema.String,
+      title: Schema.String,
+      height: Schema.Number,
+      heights: Schema.optional(Schema.Array(Schema.Tuple([Schema.Int, Schema.Int]))),
+    }),
+    message: Schema.String,
+  }),
+  failure: OrchestratorMcpFailure,
+  failureMode: "return",
+  dependencies: [
+    McpInvocationContext.McpInvocationContext,
+    ThreadManagementService.ThreadManagementService,
+    HtmlRender.HtmlRender,
+  ],
+})
+  .annotate(Tool.Title, "Study quiz")
+  .annotate(Tool.Readonly, true)
+  .annotate(Tool.Destructive, false)
+  .annotate(Tool.Idempotent, false)
+  .annotate(Tool.OpenWorld, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
+
 export const HtmlPreviewToolkit = Toolkit.make(HtmlPreviewTool);
 
-export const HtmlRenderToolkit = Toolkit.make(HtmlRenderTool);
+export const HtmlRenderToolkit = Toolkit.make(HtmlRenderTool, StudyQuizTool);
 
-export const HtmlToolkit = Toolkit.make(HtmlPreviewTool, HtmlRenderTool);
+export const HtmlToolkit = Toolkit.make(HtmlPreviewTool, HtmlRenderTool, StudyQuizTool);
