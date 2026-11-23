@@ -3,10 +3,11 @@ import type { UsageChartMetric } from "./UsageProviderChart";
 import { resolveShortcutCommand, type ShortcutEventLike } from "../../keybindings";
 
 export type UsageMetric = UsageChartMetric | "limits";
+// Limits first, and cost named as an estimate: users read a bare "Cost" as their bill.
 export const METRIC_OPTIONS = [
-  { value: "cost", label: "Cost", command: "usage.cost" },
+  { value: "limits", label: "Plan left", command: "usage.limits" },
   { value: "tokens", label: "Tokens", command: "usage.tokens" },
-  { value: "limits", label: "Limits", command: "usage.limits" },
+  { value: "cost", label: "API value", command: "usage.cost" },
 ] as const satisfies readonly { value: UsageMetric; label: string; command: KeybindingCommand }[];
 
 export const WINDOW_OPTIONS = [
