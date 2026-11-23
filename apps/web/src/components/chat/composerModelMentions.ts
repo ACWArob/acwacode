@@ -3,6 +3,7 @@ import {
   rankComposerProviderShortcuts,
   resolveDefaultModelOptionForInstance,
   resolvePromptProviderRouting,
+  resolvePromptProviderTargets,
   type InlineProviderHandleOccurrence,
   type PromptProviderRoutingInput,
   type PromptProviderRoutingResult,
@@ -15,6 +16,7 @@ import { getDisplayModelName, type ModelEsque } from "./providerIconUtils";
 
 export {
   resolvePromptProviderRouting,
+  resolvePromptProviderTargets,
   type InlineProviderHandleOccurrence,
   type PromptProviderRoutingInput,
   type PromptProviderRoutingResult,

@@ -11,6 +11,7 @@ import {
   rankComposerModelMentions,
   rankComposerProviderShortcuts,
   resolvePromptProviderRouting,
+  resolvePromptProviderTargets,
   type PromptRoutingModelOption,
   type PromptRoutingProviderInstance,
 } from "./composerModelMentions.ts";
@@ -644,5 +645,30 @@ describe("resolvePromptProviderRouting", () => {
         matchedTargetLabel: null,
       });
     }
+  });
+});
+
+describe("resolvePromptProviderTargets", () => {
+  const route = (prompt: string) =>
+    resolvePromptProviderTargets({
+      prompt,
+      instanceEntries: testInstances,
+      modelOptionsByInstance: testModelOptionsByInstance,
+      currentChannelModelSelection: defaultChannelSelection,
+    }).map((result) => result.modelSelection.instanceId);
+
+  it("returns every mentioned agent in mention order, once each", () => {
+    expect(route("@codex @claude compare these, then @codex again")).toEqual([
+      instanceId("codex"),
+      instanceId("claudeAgent"),
+    ]);
+  });
+
+  it("expands @all to every eligible instance", () => {
+    expect(route("@all review this plan")).toEqual(testInstances.map((entry) => entry.instanceId));
+  });
+
+  it("keeps the channel selection when nothing is mentioned", () => {
+    expect(route("plain follow-up")).toEqual([instanceId("claudeAgent")]);
   });
 });

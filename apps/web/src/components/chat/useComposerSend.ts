@@ -106,7 +106,10 @@ import {
   multipleModelSendBlock,
   referencedThreadContexts,
 } from "./composerSend.logic";
-import { resolvePromptProviderRouting } from "./composerModelMentions";
+import {
+  resolvePromptProviderRouting,
+  resolvePromptProviderTargets,
+} from "./composerModelMentions";
 import { getComposerProviderState, resolveMentionTargetOptions } from "./composerProviderState";
 import { useMultipleModelSend } from "./useMultipleModelSend";
 import { type ComposerDispatchMode } from "@t3tools/client-runtime/state/composer-dispatch";
@@ -857,9 +860,9 @@ export function useComposerSend(input: ComposerSendInput) {
       cabinetItems: composerCabinetItemsSnapshot,
       messageText: messageTextForSend,
     } = sendSnapshot;
-    const promptProviderRouting =
+    const routingInput =
       multipleModelSelections === null && sendCtx.modelOptionsByInstance
-        ? resolvePromptProviderRouting({
+        ? {
             prompt: messageTextForSend,
             instanceEntries: sendCtx.routableProviderInstanceEntries ?? providerInstanceEntries,
             modelOptionsByInstance: sendCtx.modelOptionsByInstance,
@@ -867,8 +870,21 @@ export function useComposerSend(input: ComposerSendInput) {
             ...(sendCtx.lastUsedModelByInstance
               ? { lastUsedModelByInstance: sendCtx.lastUsedModelByInstance }
               : {}),
-          })
+          }
         : null;
+    // Several @mentions (or @all): the first agent runs now, the rest queue behind it on this
+    // thread and see the earlier answers through the provider handoff.
+    const mentionedTargets =
+      routingInput === null
+        ? []
+        : resolvePromptProviderTargets(routingInput).filter((target) => target.switchedByMention);
+    const promptProviderRouting =
+      routingInput === null
+        ? null
+        : mentionedTargets.length > 1
+          ? mentionedTargets[0]!
+          : resolvePromptProviderRouting(routingInput);
+    const queuedAgentSelections = mentionedTargets.slice(1).map((target) => target.modelSelection);
     // An @mention wins; otherwise the channel keeps talking to its last agent, if it has one.
     const addressedSelection =
       promptProviderRouting?.switchedByMention === true
@@ -1542,6 +1558,28 @@ export function useComposerSend(input: ComposerSendInput) {
         failure = startResult;
       } else {
         turnStartSucceeded = true;
+        if (!postAsNote) {
+          for (const modelSelection of queuedAgentSelections) {
+            const queued = await startThreadTurn({
+              environmentId,
+              input: {
+                threadId: threadIdForSend,
+                message: {
+                  messageId: newMessageId(),
+                  role: "user",
+                  attachments: [],
+                  text: outgoingMessageText,
+                },
+                modelSelection,
+                runtimeMode,
+                interactionMode: DEFAULT_INTERACTION_MODE,
+                dispatchMode: "queue",
+                createdAt: new Date().toISOString(),
+              },
+            });
+            if (queued._tag === "Failure") failure = queued;
+          }
+        }
         if (checkoutPullRequestUrl) {
           linkCheckoutPullRequest(
             scopeThreadRef(environmentId, threadIdForSend),

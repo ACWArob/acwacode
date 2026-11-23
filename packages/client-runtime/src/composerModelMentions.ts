@@ -782,20 +782,72 @@ function buildResolvedSelection(
   };
 }
 
-export function resolvePromptProviderRouting(
-  input: PromptProviderRoutingInput,
-): PromptProviderRoutingResult {
-  const fallback: PromptProviderRoutingResult = {
+function fallbackRouting(input: PromptProviderRoutingInput): PromptProviderRoutingResult {
+  return {
     modelSelection: input.currentChannelModelSelection,
     switchedByMention: false,
     matchedHandle: null,
     matchedModelLabel: null,
     matchedTargetLabel: null,
   };
+}
 
-  if (input.prompt.trim().length === 0) return fallback;
+export function resolvePromptProviderRouting(
+  input: PromptProviderRoutingInput,
+): PromptProviderRoutingResult {
+  const resolved = collectResolvedMentions(input);
+  return resolved.length === 0 ? fallbackRouting(input) : resolved[resolved.length - 1]!.result;
+}
+
+const ALL_AGENTS_PATTERN = /(?:^|\s)@all(?=$|[\s.,!?;:])/iu;
+
+/**
+ * Every agent a prompt addresses, in mention order, one entry per provider instance.
+ * `@all` addresses every eligible instance on its default model. With no mention this returns
+ * the channel's current selection alone, so callers can always dispatch the first entry.
+ */
+export function resolvePromptProviderTargets(
+  input: PromptProviderRoutingInput,
+): ReadonlyArray<PromptProviderRoutingResult> {
+  const results: PromptProviderRoutingResult[] = collectResolvedMentions(input).map(
+    (entry) => entry.result,
+  );
+  if (ALL_AGENTS_PATTERN.test(input.prompt)) {
+    for (const instance of input.instanceEntries.filter(isEligibleInstance)) {
+      const resolved = resolveDefaultModelOptionForInstance({
+        entry: instance,
+        options: getInstanceOptions(instance, input.modelOptionsByInstance),
+        lastUsedModel: input.lastUsedModelByInstance?.get(instance.instanceId),
+        currentChannelModelSelection: input.currentChannelModelSelection,
+      });
+      if (!resolved) continue;
+      results.push(
+        buildResolvedSelection(
+          instance,
+          resolved.model,
+          resolved.option,
+          input.currentChannelModelSelection,
+        ),
+      );
+    }
+  }
+  const seen = new Set<string>();
+  const unique = results.filter((result) => {
+    const key = result.modelSelection.instanceId;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return unique.length === 0 ? [fallbackRouting(input)] : unique;
+}
+
+function collectResolvedMentions(input: PromptProviderRoutingInput): ReadonlyArray<{
+  readonly start: number;
+  readonly result: PromptProviderRoutingResult;
+}> {
+  if (input.prompt.trim().length === 0) return [];
   const eligibleInstances = input.instanceEntries.filter(isEligibleInstance);
-  if (eligibleInstances.length === 0) return fallback;
+  if (eligibleInstances.length === 0) return [];
 
   const resolvedMentions: Array<{
     readonly start: number;
@@ -939,7 +991,6 @@ export function resolvePromptProviderRouting(
     }
   }
 
-  if (resolvedMentions.length === 0) return fallback;
   resolvedMentions.sort((left, right) => left.start - right.start);
-  return resolvedMentions[resolvedMentions.length - 1]!.result;
+  return resolvedMentions;
 }
