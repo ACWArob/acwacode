@@ -17,6 +17,8 @@ const CLI_RUNTIME_EXTERNAL_PREFIXES = [
   "node-addon-api",
   "bufferutil",
   "utf-8-validate",
+  // outboundHttp loads undici with createRequire, which the bundler cannot follow.
+  "undici",
 ] as const;
 
 export function isRuntimeExternalCliDependency(id: string): boolean {

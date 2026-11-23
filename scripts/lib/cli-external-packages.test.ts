@@ -42,6 +42,7 @@ describe("shouldBundleCliDependency", () => {
       "koffi",
       "@clerk/electron-passkeys",
       "node-addon-api",
+      "undici",
     ]) {
       assert.strictEqual(shouldBundleCliDependency(id), false, id);
     }
