@@ -806,7 +806,8 @@ export const ClaudeSettings = makeProviderSettingsSchema(
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
     ),
     launchArgs: Schema.String.pipe(
-      Schema.withDecodingDefault(Effect.succeed("")),
+      // acwacode: Claude in Chrome on by default so agents can browse with the user's Chrome.
+      Schema.withDecodingDefault(Effect.succeed("--chrome")),
       Schema.annotateKey({
         title: "Launch arguments",
         description: "Additional CLI arguments passed on session start.",
