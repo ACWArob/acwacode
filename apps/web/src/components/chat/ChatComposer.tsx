@@ -143,6 +143,9 @@ import { useDictationShortcut } from "../../speech/useDictationShortcut";
 import { useDictationSubmissionShortcut } from "../../speech/useDictationSubmissionShortcut";
 import { useEnvironmentSpeechInput } from "../../speech/useEnvironmentSpeechInput";
 import { ComposerSpeechButton, ComposerSpeechRecordingPill } from "./ComposerSpeechButton";
+import { ComposerCallButton } from "./ComposerCallButton";
+import { useVoiceCall } from "../../speech/useVoiceCall";
+import { type CallMessage, VOICE_CALL_HINT } from "../../speech/voiceCall.logic";
 import type { AssistantCitationSourceAnchor } from "~/lib/assistantTextSelection";
 import { shortcutLabelForCommand, type ShortcutMatchContext } from "../../keybindings";
 import {
@@ -392,6 +395,8 @@ export interface ChatComposerProps {
   activeThreadId: ThreadId | null;
   activeThread: Thread | undefined;
   activeThreadRuns: ReadonlyArray<OrchestrationV2Run>;
+  /** The thread's messages, for voice calls to read replies aloud. */
+  callMessages: ReadonlyArray<CallMessage>;
   promptHistoryEntries: ReadonlyArray<TimelineEntry>;
   forceExpandedOnMobile: boolean;
   projectSelectionRequired: boolean;
@@ -525,6 +530,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     activeThreadId,
     activeThread,
     activeThreadRuns,
+    callMessages,
     promptHistoryEntries,
     forceExpandedOnMobile,
     projectSelectionRequired,
@@ -2312,6 +2318,25 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const submitComposerRef = useRef<
     (dispatchMode?: ComposerDispatchMode, submissionIntent?: ComposerSubmissionIntent) => void
   >(() => {});
+  const voiceCall = useVoiceCall({
+    speech: speechInput,
+    running: phase === "running" || phase === "connecting",
+    messages: callMessages,
+    speakerOf: (message) => {
+      const run = activeThreadRuns.find((candidate) => candidate.id === message.runId);
+      return run ? `${run.providerInstanceId} ${run.modelSelection.model}` : "";
+    },
+    prepareDraft: (council) => {
+      const snapshot = readComposerSnapshot();
+      const before = council ? "@all " : "";
+      applyPromptReplacement(0, snapshot.value.length, `${before}\n\n${VOICE_CALL_HINT}`, {
+        expectedText: snapshot.value,
+        focusEditorAfterReplace: false,
+      });
+      setComposerCursor(before.length);
+    },
+    submit: () => submitComposerRef.current(),
+  });
   const submitComposer = (
     event?: { preventDefault: () => void },
     dispatchMode?: ComposerDispatchMode,
@@ -4039,6 +4064,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                         />
                       </>
                     ) : null}
+                    <ComposerCallButton
+                      phase={voiceCall.phase}
+                      council={voiceCall.council}
+                      available={speechInput.available && !dictationDisabled}
+                      onStart={voiceCall.startCall}
+                      onEnd={voiceCall.endCall}
+                    />
                     <VoiceInputSetup
                       environmentId={speechInput.transcriptionEnvironmentId}
                       open={speechInput.setup.open}

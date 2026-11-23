@@ -1,0 +1,133 @@
+export type VoiceCallPhase = "off" | "listening" | "sending" | "waiting" | "speaking";
+
+export interface SilenceTracker {
+  readonly heardSpeech: boolean;
+  readonly quietSinceMs: number | null;
+  readonly startedAtMs: number;
+}
+
+// Mic level is the worklet's smoothed RMS × 4, clamped to 0–1.
+const SPEECH_LEVEL = 0.12;
+const QUIET_LEVEL = 0.07;
+export const END_OF_TURN_SILENCE_MS = 1300;
+export const MAX_TURN_MS = 60_000;
+
+export const startSilenceTracker = (nowMs: number): SilenceTracker => ({
+  heardSpeech: false,
+  quietSinceMs: null,
+  startedAtMs: nowMs,
+});
+
+/** Advances the tracker with one level sample; `done` means the caller stopped talking. */
+export function trackSilence(
+  tracker: SilenceTracker,
+  level: number,
+  nowMs: number,
+): { readonly tracker: SilenceTracker; readonly done: boolean } {
+  if (nowMs - tracker.startedAtMs >= MAX_TURN_MS) return { tracker, done: tracker.heardSpeech };
+  if (level >= SPEECH_LEVEL) {
+    return { tracker: { ...tracker, heardSpeech: true, quietSinceMs: null }, done: false };
+  }
+  if (!tracker.heardSpeech || level >= QUIET_LEVEL) {
+    return { tracker: { ...tracker, quietSinceMs: null }, done: false };
+  }
+  const quietSinceMs = tracker.quietSinceMs ?? nowMs;
+  return {
+    tracker: { ...tracker, quietSinceMs },
+    done: nowMs - quietSinceMs >= END_OF_TURN_SILENCE_MS,
+  };
+}
+
+export const VOICE_CALL_HINT =
+  "(Voice call: answer in a few short spoken sentences. Put any code or long detail in the chat, not in the spoken part.)";
+
+const MAX_SPOKEN_CHARS = 700;
+
+/** Turns a Markdown reply into text that sounds natural read aloud. */
+export function speakableText(markdown: string): string {
+  const plain = markdown
+    .replace(/```[\s\S]*?(```|$)/g, " (code is on screen) ")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\|.*\|\s*$/gm, "")
+    .replace(/(\*\*|__|\*|_|~~)(\S[\s\S]*?\S|\S)\1/g, "$2")
+    .replace(/https?:\/\/\S+/g, "a link")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (plain.length <= MAX_SPOKEN_CHARS) return plain;
+  const cut = plain.slice(0, MAX_SPOKEN_CHARS);
+  const sentenceEnd = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "));
+  return `${sentenceEnd > 200 ? cut.slice(0, sentenceEnd + 1) : cut} The rest is on screen.`;
+}
+
+export interface CallMessage {
+  readonly id: string;
+  readonly runId: string | null;
+  readonly role: "user" | "assistant" | "system";
+  readonly text: string;
+  readonly streaming: boolean;
+}
+
+/** Finished assistant replies after the caller's last message that have not been spoken yet. */
+export function repliesToSpeak(
+  messages: ReadonlyArray<CallMessage>,
+  seenIds: ReadonlySet<string>,
+): ReadonlyArray<CallMessage> {
+  const replies: CallMessage[] = [];
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message || message.role === "system") continue;
+    if (message.role === "user" || seenIds.has(message.id)) break;
+    replies.unshift(message);
+  }
+  // Speak in order: a reply still streaming holds back the ones after it.
+  const ready: CallMessage[] = [];
+  for (const reply of replies) {
+    if (reply.streaming) break;
+    if (reply.text.trim() !== "") ready.push(reply);
+  }
+  return ready;
+}
+
+export interface VoiceProfile {
+  readonly lang: string;
+  readonly nameHints: RegExp;
+  readonly pitch: number;
+  readonly rate: number;
+}
+
+const VOICE_PROFILES = {
+  claude: {
+    lang: "en-GB",
+    nameHints: /daniel|arthur|oliver|male|uk english male/i,
+    pitch: 0.95,
+    rate: 1.0,
+  },
+  gpt: {
+    lang: "en-US",
+    nameHints: /alex|aaron|fred|tom|male|us english male/i,
+    pitch: 0.9,
+    rate: 1.05,
+  },
+  gemini: {
+    lang: "en-US",
+    nameHints: /samantha|ava|allison|female|us english female/i,
+    pitch: 1.1,
+    rate: 1.05,
+  },
+  // DeepSeek and the other open models: a kid (high, quick voice).
+  kid: { lang: "en-US", nameHints: /junior|kid|child|samantha|ava/i, pitch: 1.7, rate: 1.15 },
+} as const satisfies Record<string, VoiceProfile>;
+
+/** Picks a voice by who answered: provider instance id plus model name. */
+export function voiceProfileFor(speaker: string): VoiceProfile {
+  const key = speaker.toLowerCase();
+  if (/claude|anthropic|opus|sonnet|haiku/.test(key)) return VOICE_PROFILES.claude;
+  if (/gemini|antigravity|google/.test(key)) return VOICE_PROFILES.gemini;
+  if (/deepseek|kimi|qwen|glm|minimax|opencode|mimo/.test(key)) return VOICE_PROFILES.kid;
+  if (/codex|gpt|openai/.test(key)) return VOICE_PROFILES.gpt;
+  return VOICE_PROFILES.claude;
+}
