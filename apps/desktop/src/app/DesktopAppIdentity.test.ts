@@ -200,9 +200,9 @@ describe("DesktopAppIdentity", () => {
 
         const runtimeName = calls.setName[0];
         assert.isDefined(runtimeName);
-        assert.equal(runtimeName, `nabilcode ${stage}`);
+        assert.equal(runtimeName, `acwacode ${stage}`);
         assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `nabilcode (${stage})`);
+        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `acwacode (${stage})`);
       }),
       { calls, environment },
     );
