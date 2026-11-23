@@ -27,6 +27,16 @@ allowBuilds:
   utf-8-validate: false
   workerd: false
 
+# Install native prebuilds for both Mac CPUs. A shell running under Rosetta (or an Intel
+# Node) otherwise installs only x64 binaries, and the arm64 Electron app can't load them.
+supportedArchitectures:
+  os:
+    - current
+  cpu:
+    - current
+    - arm64
+    - x64
+
 catalog:
   "@alchemy.run/axiom": 2.0.0-beta.85
   "@alchemy.run/cloudflare": 2.0.0-beta.85
