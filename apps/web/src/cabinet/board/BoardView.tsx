@@ -85,9 +85,9 @@ export function BoardView(props: { readonly primary: ReactNode }) {
   const active = useActiveProjectRef();
   const key = active === null ? null : boardKey(active.environmentId, active.projectId);
   const layout = useBoardStore(key === null ? selectDefaultLayout : selectBoardLayout(key));
-  const project = useProject(
-    active === null ? null : scopeProjectRef(active.environmentId, active.projectId),
-  );
+  const boardProject =
+    active === null ? null : scopeProjectRef(active.environmentId, active.projectId);
+  const project = useProject(boardProject);
   const navigate = useNavigate();
   const primaryIsServer = useShownThreadRouteTarget().shownTarget?.kind === "server";
   const primaryThreadKey = active === null ? "" : scopedThreadKey(active.threadRef);
@@ -117,10 +117,15 @@ export function BoardView(props: { readonly primary: ReactNode }) {
     if (key !== null) useBoardStore.getState().openDiff(key, threadKey);
   };
   // The primary ChatView stays mounted: only its route changes, and the card takes the old thread.
-  const promote = (card: BoardCardModel) => {
+  // A cross-project thread opens on its own project's board, so this one is left as it is.
+  const promote = (card: BoardCardModel, crossProject: boolean) => {
     const target = card.ref === null ? null : parseScopedThreadKey(card.ref);
     if (key === null || target === null) return;
-    useBoardStore.getState().promoteThread(key, card.id, primaryIsServer ? primaryThreadKey : null);
+    if (!crossProject) {
+      useBoardStore
+        .getState()
+        .promoteThread(key, card.id, primaryIsServer ? primaryThreadKey : null);
+    }
     void navigate({ to: "/$environmentId/$threadId", params: buildThreadRouteParams(target) });
   };
 
@@ -166,7 +171,8 @@ export function BoardView(props: { readonly primary: ReactNode }) {
                 active={active !== null}
                 multi={multi}
                 primaryThreadKey={primaryThreadKey}
-                onPromote={() => promote(card)}
+                boardProject={boardProject}
+                onPromote={(crossProject) => promote(card, crossProject)}
                 onOpenDiff={() => card.ref !== null && openDiff(card.ref)}
                 onClose={() => useBoardStore.getState().closeCard(key!, card.id)}
               />

@@ -1058,6 +1058,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           noteMode,
           route: autoRoute(prompt, routableProviderInstanceEntries, selectedModelSelection),
           pick: agentPick,
+          isPrepaid: (selection) =>
+            routableProviderInstanceEntries.some(
+              (entry) =>
+                entry.instanceId === selection.instanceId && entry.driverKind === "acpRegistry",
+            ),
           isRoutable: (selection) =>
             routableProviderInstanceEntries.some(
               (entry) => entry.instanceId === selection.instanceId,

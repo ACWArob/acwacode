@@ -215,6 +215,104 @@ export const promoteThreadCard = (
   });
 };
 
+/** A thread of another project the board could show; `activityAt` sorts as an ISO string. */
+export interface ProjectThreadCandidate {
+  readonly threadKey: string;
+  readonly projectKey: string;
+  readonly activityAt: string;
+}
+
+const byRecentActivity = <T extends { readonly activityAt: string }>(a: T, b: T) =>
+  b.activityAt.localeCompare(a.activityAt);
+
+/** The latest thread of each of the `limit` most recently active projects not in `excluded`. */
+export const pickRecentProjectThreads = (
+  candidates: readonly ProjectThreadCandidate[],
+  excludedProjectKeys: ReadonlySet<string>,
+  limit: number,
+): string[] => {
+  const taken = new Set(excludedProjectKeys);
+  const picks: string[] = [];
+  for (const candidate of candidates.toSorted(byRecentActivity)) {
+    if (picks.length >= limit) break;
+    if (taken.has(candidate.projectKey)) continue;
+    taken.add(candidate.projectKey);
+    picks.push(candidate.threadKey);
+  }
+  return picks;
+};
+
+/**
+ * Switches to 2×2 and fills its empty slots with the latest thread of the most recently active
+ * other projects (`candidates` hold only other projects' threads). Projects already placed on the
+ * board are skipped, and no placed card is replaced.
+ */
+export const splitAcrossProjects = (
+  layout: BoardLayout,
+  candidates: readonly ProjectThreadCandidate[],
+  primaryRef: string | null,
+): BoardLayout => {
+  let next = layout.preset === "grid" ? layout : applyPreset(layout, "grid");
+  const placedRefs = new Set(
+    next.cards.flatMap((card) => (isSecondaryThread(card) && card.slot ? [card.ref] : [])),
+  );
+  const onBoard = new Set(
+    candidates.flatMap((candidate) =>
+      placedRefs.has(candidate.threadKey) ? [candidate.projectKey] : [],
+    ),
+  );
+  const free = layoutSlots(next).filter((_, index) => cardAtIndex(next, index) === undefined);
+  for (const ref of pickRecentProjectThreads(candidates, onBoard, free.length)) {
+    next = openThreadCard(next, ref, primaryRef);
+  }
+  return next;
+};
+
+export interface ProjectThreadEntry extends ProjectThreadCandidate {
+  readonly projectTitle: string;
+  readonly title: string;
+}
+
+export interface ProjectThreadGroup {
+  readonly projectKey: string;
+  readonly projectTitle: string;
+  readonly threads: ProjectThreadEntry[];
+}
+
+/**
+ * Groups threads by project, most recently active project and thread first. A blank query keeps
+ * the latest `perProject` threads of each project; a query matches thread or project titles
+ * (case-insensitive) and keeps up to `total` threads in all.
+ */
+export const groupThreadsByProject = (
+  threads: readonly ProjectThreadEntry[],
+  query: string,
+  limits: { readonly perProject: number; readonly total: number },
+): ProjectThreadGroup[] => {
+  const needle = query.trim().toLowerCase();
+  const groups = new Map<string, ProjectThreadGroup>();
+  let kept = 0;
+  for (const thread of threads.toSorted(byRecentActivity)) {
+    if (kept >= limits.total) break;
+    if (
+      needle !== "" &&
+      !thread.title.toLowerCase().includes(needle) &&
+      !thread.projectTitle.toLowerCase().includes(needle)
+    ) {
+      continue;
+    }
+    let group = groups.get(thread.projectKey);
+    if (!group) {
+      group = { projectKey: thread.projectKey, projectTitle: thread.projectTitle, threads: [] };
+      groups.set(thread.projectKey, group);
+    }
+    if (needle === "" && group.threads.length >= limits.perProject) continue;
+    group.threads.push(thread);
+    kept++;
+  }
+  return [...groups.values()];
+};
+
 export interface CabinetCardItem {
   readonly id: string;
   readonly type: string;

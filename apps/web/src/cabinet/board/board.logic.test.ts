@@ -1,3 +1,4 @@
+import { parseScopedThreadKey } from "@t3tools/client-runtime/environment";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
@@ -9,15 +10,19 @@ import {
   canResizeCardWidth,
   closeCard,
   DEFAULT_LAYOUT,
+  groupThreadsByProject,
   layoutSlots,
   moveCardToSlot,
   MAX_SECONDARY_THREAD_CARDS,
   openCard,
   openThreadCard,
+  pickRecentProjectThreads,
   placementsForPreset,
+  type ProjectThreadEntry,
   promoteThreadCard,
   resizeCard,
   sanitizeLayout,
+  splitAcrossProjects,
   swapCards,
 } from "./board.logic";
 import type { BoardLayout, BoardPresetId, BoardSlot } from "./board.types";
@@ -254,6 +259,87 @@ describe("thread cards", () => {
   });
 });
 
+describe("split across projects", () => {
+  const PRIMARY = "env:t-primary";
+  const candidate = (threadKey: string, projectKey: string, activityAt: string) => ({
+    threadKey,
+    projectKey,
+    activityAt,
+  });
+  const candidates = [
+    candidate("env:a-old", "env:a", "2026-01-01"),
+    candidate("env:a-new", "env:a", "2026-01-05"),
+    candidate("env:b1", "env:b", "2026-01-04"),
+    candidate("remote:c1", "remote:c", "2026-01-03"),
+    candidate("env:d1", "env:d", "2026-01-02"),
+  ];
+
+  it("picks the latest thread of the most recently active projects, skipping excluded ones", () => {
+    expect(pickRecentProjectThreads(candidates, new Set(), 3)).toEqual([
+      "env:a-new",
+      "env:b1",
+      "remote:c1",
+    ]);
+    expect(pickRecentProjectThreads(candidates, new Set(["env:b"]), 3)).toEqual([
+      "env:a-new",
+      "remote:c1",
+      "env:d1",
+    ]);
+    expect(pickRecentProjectThreads(candidates, new Set(), 0)).toEqual([]);
+  });
+
+  it("switches to 2×2 and fills every empty slot with another project's thread", () => {
+    const next = splitAcrossProjects(DEFAULT_LAYOUT, candidates, PRIMARY);
+    expect(next.preset).toBe("grid");
+    expect(placedIds(next)).toEqual([
+      "primary",
+      "thread:env:a-new",
+      "thread:env:b1",
+      "thread:remote:c1",
+    ]);
+  });
+
+  it("fills only empty slots and skips projects already placed", () => {
+    const layout = openThreadCard(open(DEFAULT_LAYOUT, "a.md"), "env:b1", PRIMARY);
+    const next = splitAcrossProjects(layout, candidates, PRIMARY);
+    expect(placedIds(next)).toEqual([
+      "primary",
+      "markdown:a.md",
+      "thread:env:b1",
+      "thread:env:a-new",
+    ]);
+    expect(splitAcrossProjects(next, candidates, PRIMARY)).toBe(next);
+  });
+
+  it("groups threads by project, latest first, capped per project unless searching", () => {
+    const entry = (threadKey: string, project: string, title: string, activityAt: string) =>
+      ({
+        threadKey,
+        projectKey: `env:${project}`,
+        projectTitle: project,
+        title,
+        activityAt,
+      }) satisfies ProjectThreadEntry;
+    const threads = [
+      entry("env:1", "api", "Fix login", "2026-01-01"),
+      entry("env:2", "web", "Board split", "2026-01-04"),
+      entry("env:3", "api", "Add rate limit", "2026-01-03"),
+      entry("env:4", "api", "Login copy", "2026-01-02"),
+    ];
+    const shape = (query: string, perProject = 2) =>
+      groupThreadsByProject(threads, query, { perProject, total: 10 }).map((group) => [
+        group.projectTitle,
+        group.threads.map((thread) => thread.threadKey),
+      ]);
+    expect(shape("")).toEqual([
+      ["web", ["env:2"]],
+      ["api", ["env:3", "env:4"]],
+    ]);
+    expect(shape(" LOGIN ", 1)).toEqual([["api", ["env:4", "env:1"]]]);
+    expect(shape("web")).toEqual([["web", ["env:2"]]]);
+  });
+});
+
 describe("cardKindForPath", () => {
   it.each([
     ["notes/README.md", "markdown"],
@@ -400,6 +486,36 @@ describe("sanitizeLayout", () => {
       "thread:env:t3",
     ]);
     expect(layout.cards.every((card) => card.source === "repo")).toBe(true);
+  });
+
+  it("decodes stored thread refs unchanged and keeps another environment's thread in its ref", () => {
+    const stored = {
+      preset: "grid",
+      cards: [
+        { id: "primary", kind: "thread", ref: null, slot: { col: 1, row: 1, w: 6, h: 1 } },
+        {
+          id: "thread:env:t1",
+          kind: "thread",
+          ref: "env:t1",
+          slot: { col: 7, row: 1, w: 6, h: 1 },
+        },
+        { id: "thread:remote:t9", kind: "thread", ref: "remote:t9", slot: null },
+        { id: "diff:remote:t9", kind: "diff", ref: "remote:t9", slot: null },
+      ],
+    };
+    const layout = sanitizeLayout(stored);
+    expect(layout.cards.map(({ id, ref, slot }) => ({ id, ref, slot }))).toEqual(
+      stored.cards.map(({ id, ref }, index) => ({
+        id,
+        ref,
+        slot: placementsForPreset("grid")[index],
+      })),
+    );
+    expect(parseScopedThreadKey(layout.cards[2]!.ref!)).toEqual({
+      environmentId: "remote",
+      threadId: "t9",
+    });
+    expect(sanitizeLayout(JSON.parse(JSON.stringify(layout)))).toEqual(layout);
   });
 
   it("round-trips a valid layout", () => {

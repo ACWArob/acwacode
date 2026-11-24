@@ -1,14 +1,16 @@
-import { parseScopedThreadKey } from "@t3tools/client-runtime/environment";
+import { parseScopedThreadKey, scopeProjectRef } from "@t3tools/client-runtime/environment";
+import type { ScopedProjectRef } from "@t3tools/contracts";
 import { useGT, useMessages } from "gt-react";
-import { FileDiffIcon } from "lucide-react";
+import { FileDiffIcon, FolderIcon } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 
 import { FileSurfaceLoading } from "~/components/files/fileSurfaceChrome";
 import { resolveSidebarRowStatus, resolveThreadLastVisitedAt } from "~/components/Sidebar.logic";
 import { Button } from "~/components/ui/button";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { observeIntersection } from "~/lib/observeIntersection";
 import { cn } from "~/lib/utils";
-import { useQuietThreadShell } from "~/state/entities";
+import { useProject, useQuietThreadShell } from "~/state/entities";
 import { useUiStateStore } from "~/uiStateStore";
 import { cabinetRowStatus } from "../../sidebar/cabinetStatus.logic";
 import { DOT_CLASS } from "../../sidebar/CabinetThreadRow";
@@ -24,7 +26,8 @@ const DiffCard = lazy(() => import("./DiffCard"));
 /**
  * A secondary thread card or a diff card; `card.ref` is a scoped thread key. Its body mounts only
  * while the card is on screen, so a card hidden by the narrow-board fallback holds no thread
- * subscriptions. A thread the route already shows renders no second live view.
+ * subscriptions. A thread the route already shows renders no second live view. A thread of another
+ * project than the board's names its project in the header.
  */
 export function ThreadBoardCard(props: {
   readonly card: BoardCardModel;
@@ -32,7 +35,10 @@ export function ThreadBoardCard(props: {
   readonly active: boolean;
   readonly multi: boolean;
   readonly primaryThreadKey: string;
-  readonly onPromote: () => void;
+  /** The board's project; a card whose thread belongs elsewhere is cross-project. */
+  readonly boardProject: ScopedProjectRef | null;
+  /** `crossProject`: the thread opens in its own project's board, so this board stays as it is. */
+  readonly onPromote: (crossProject: boolean) => void;
   readonly onOpenDiff: () => void;
   readonly onClose: () => void;
 }) {
@@ -46,6 +52,16 @@ export function ThreadBoardCard(props: {
   const [visible, setVisible] = useState(false);
   const isDiff = card.kind === "diff";
   const threadTitle = shell?.title ?? gt("Thread");
+  const crossProject =
+    shell !== null &&
+    props.boardProject !== null &&
+    (shell.environmentId !== props.boardProject.environmentId ||
+      shell.projectId !== props.boardProject.projectId);
+  const projectTitle =
+    useProject(crossProject ? scopeProjectRef(shell.environmentId, shell.projectId) : null)
+      ?.title ?? null;
+  const projectChip = projectTitle === null ? null : <ThreadProjectChip title={projectTitle} />;
+  const promote = () => props.onPromote(crossProject);
 
   let leading = <FileDiffIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />;
   if (!isDiff) {
@@ -91,11 +107,19 @@ export function ThreadBoardCard(props: {
       title={isDiff ? gt("Diff: {title}", { title: threadTitle }) : threadTitle}
       leading={leading}
       {...(isDiff
-        ? {}
+        ? { extras: projectChip }
         : {
-            extras: threadRef === null ? null : <ThreadHeaderChips threadRef={threadRef} />,
-            onActivateTitle: props.onPromote,
-            titleActionLabel: gt("Focus this thread"),
+            extras: (
+              <>
+                {projectChip}
+                {threadRef === null ? null : <ThreadHeaderChips threadRef={threadRef} />}
+              </>
+            ),
+            onActivateTitle: promote,
+            titleActionLabel:
+              projectTitle === null
+                ? gt("Focus this thread")
+                : gt("Open in {project}", { project: projectTitle }),
             actions: (
               <>
                 <Button
@@ -110,7 +134,7 @@ export function ThreadBoardCard(props: {
                   variant="ghost"
                   size="icon-xs"
                   aria-label={gt("Focus {title}", { title: threadTitle })}
-                  onClick={props.onPromote}
+                  onClick={promote}
                 >
                   <span aria-hidden className="text-2xs">
                     ◇
@@ -132,5 +156,27 @@ export function ThreadBoardCard(props: {
         {body}
       </div>
     </BoardCard>
+  );
+}
+
+function ThreadProjectChip(props: { readonly title: string }) {
+  const gt = useGT();
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            data-testid="thread-project-chip"
+            className="inline-flex h-[18px] min-w-0 shrink items-center gap-1 rounded-sm border border-border px-1.5 text-2xs text-muted-foreground"
+          />
+        }
+      >
+        <FolderIcon aria-hidden className="size-3 shrink-0" />
+        <span className="truncate">{props.title}</span>
+      </TooltipTrigger>
+      <TooltipPopup side="bottom">
+        {gt("Project: {project}", { project: props.title })}
+      </TooltipPopup>
+    </Tooltip>
   );
 }

@@ -39,6 +39,11 @@ describe("resolveLastAgentSelection", () => {
       codex,
     ],
     ["a note with nothing to route to", {}, null],
+    [
+      "the general pick instead of a prepaid last agent",
+      { runs, route: generalCodex, isPrepaid: (s) => s === claude },
+      codex,
+    ],
     ["the picked agent over a clear topic", { runs, route: topicCodex, pick: claude }, claude],
     [
       "the topic when the picked agent is gone",

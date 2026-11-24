@@ -121,11 +121,8 @@ function ThreadMenuLauncher(props: {
   const shell = useQuietThreadShell(request.threadRef);
   const threadKey = scopedThreadKey(request.threadRef);
   const primaryThreadKey = board === null ? null : scopedThreadKey(board.threadRef);
-  const canOpenInCard =
-    board !== null &&
-    shell?.environmentId === board.environmentId &&
-    shell.projectId === board.projectId &&
-    threadKey !== primaryThreadKey;
+  // Chats from other projects open as cards too; the card shows which project it belongs to.
+  const canOpenInCard = board !== null && shell !== null && threadKey !== primaryThreadKey;
   const { openMenu } = useThreadActionMenu({
     threadRef: request.threadRef,
     projectCwd: request.projectCwd,

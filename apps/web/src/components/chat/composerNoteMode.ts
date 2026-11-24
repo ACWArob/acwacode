@@ -77,6 +77,8 @@ export function resolveLastAgentSelection(input: {
   readonly isRoutable: (selection: ModelSelection) => boolean;
   readonly route: AutoRoute;
   readonly pick: ModelSelection | null;
+  /** Prepaid-credit agents (OpenRouter through OpenCode) answer only when picked or @mentioned. */
+  readonly isPrepaid?: (selection: ModelSelection) => boolean;
 }): ModelSelection | null {
   if (input.noteMode) return null;
   if (input.pick && input.isRoutable(input.pick)) return input.pick;
@@ -85,7 +87,12 @@ export function resolveLastAgentSelection(input: {
     (best, run) => (best === null || run.ordinal > best.ordinal ? run : best),
     null,
   );
-  if (latest !== null && input.isRoutable(latest.modelSelection)) return latest.modelSelection;
+  if (
+    latest !== null &&
+    input.isRoutable(latest.modelSelection) &&
+    (input.isPrepaid === undefined || !input.isPrepaid(latest.modelSelection))
+  )
+    return latest.modelSelection;
   return input.route.general;
 }
 
