@@ -4,6 +4,7 @@ import {
   TextGenerationError,
   type CodexSettings,
 } from "@t3tools/contracts";
+import { preferProbedUsageLimits } from "../codexUsageLimits.ts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -156,7 +157,7 @@ export const makeManagedCodexProvider = Effect.fn("makeManagedCodexProvider")(fu
           ...draft,
           auth: managedAuth,
           version: draft.version ?? executable.value.version,
-          usageLimits,
+          usageLimits: preferProbedUsageLimits(draft.usageLimits, usageLimits),
           models: draft.models.map((model) => ({
             ...model,
             ...(model.capabilities

@@ -249,3 +249,14 @@ export function codexMessageResetAt(
   const resetAt = DateTime.add(reset.value, { minutes: 1 });
   return DateTime.isGreaterThan(resetAt, failedAt) ? DateTime.formatIso(resetAt) : null;
 }
+
+/**
+ * A ChatGPT-connected Codex shows the plan windows its probe read; only when the probe got none
+ * does it fall back to the link to ChatGPT's usage page.
+ */
+export function preferProbedUsageLimits<T extends { readonly windows: ReadonlyArray<unknown> }>(
+  probed: T | undefined,
+  fallback: T,
+): T {
+  return probed !== undefined && probed.windows.length > 0 ? probed : fallback;
+}

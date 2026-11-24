@@ -6,6 +6,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   codexMessageResetAt,
+  preferProbedUsageLimits,
   codexRateLimitsFailureMessage,
   codexRateLimitsToLimits,
   codexRateLimitsToUpdate,
@@ -372,5 +373,22 @@ describe("codexTimeZone", () => {
     expect(DateTime.zoneToString(codexTimeZone({ TZ: ":Asia/Dhaka" }))).toBe("Asia/Dhaka");
     expect(DateTime.zoneToString(codexTimeZone({ TZ: "not/a-zone" }))).toBe(local);
     expect(DateTime.zoneToString(codexTimeZone({}))).toBe(local);
+  });
+});
+
+describe("preferProbedUsageLimits", () => {
+  const fallback: { windows: ReadonlyArray<unknown>; link?: string } = {
+    windows: [],
+    link: "chatgpt",
+  };
+  it("keeps the probed plan windows when there are any", () => {
+    const probed: { windows: ReadonlyArray<unknown>; link?: string } = {
+      windows: [{ usedPercent: 40 }],
+    };
+    expect(preferProbedUsageLimits(probed, fallback)).toBe(probed);
+  });
+  it("falls back when the probe read none", () => {
+    expect(preferProbedUsageLimits({ windows: [] }, fallback)).toBe(fallback);
+    expect(preferProbedUsageLimits(undefined, fallback)).toBe(fallback);
   });
 });
