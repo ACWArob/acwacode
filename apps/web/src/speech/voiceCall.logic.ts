@@ -38,9 +38,12 @@ export function trackSilence(
   };
 }
 
-// Keep topic words (code, search, …) out of this hint: autoRoute reads the whole draft.
+// Keep topic words (code, search, …) out of these hints: autoRoute reads the whole draft.
 export const VOICE_CALL_HINT =
-  "(Voice call: answer in a few short spoken sentences. Put anything long in the chat, not in the spoken part.)";
+  "(Voice call: answer in a few short spoken sentences. Put anything long in the chat, not in the spoken part. When the caller gives jobs to more than one agent by name, Claude leads: hand each job to the agent named with delegate_task (Gemini is the antigravity provider, ChatGPT is codex) so they work at once, say in a sentence who is on what, and report back aloud as each one finishes.)";
+
+export const VOICE_TEAM_HINT =
+  "(Voice call, team: work this out together in the chat in writing, like a team. Claude leads as the project manager and speaks last. Only Claude's reply is read aloud, so Claude ends with a few short spoken sentences: the plan and who does what.)";
 
 const MAX_SPOKEN_CHARS = 700;
 
@@ -56,6 +59,8 @@ export function speakableText(markdown: string): string {
     .replace(/^\s*\|.*\|\s*$/gm, "")
     .replace(/(\*\*|__|\*|_|~~)(\S[\s\S]*?\S|\S)\1/g, "$2")
     .replace(/https?:\/\/\S+/g, "a link")
+    // A chunk cut from a streaming reply can carry one half of a Markdown pair.
+    .replace(/[*`#|>~]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (plain.length <= MAX_SPOKEN_CHARS) return plain;
@@ -72,25 +77,96 @@ export interface CallMessage {
   readonly streaming: boolean;
 }
 
-/** Finished assistant replies after the caller's last message that have not been spoken yet. */
-export function repliesToSpeak(
+/** How far into each reply the call has spoken, in raw text offsets; Infinity means done or skipped. */
+export type SpokenProgress = ReadonlyMap<string, number>;
+
+export interface SpeechChunk {
+  readonly messageId: string;
+  /** Offset to record as spoken once this chunk is handed to the voice. */
+  readonly end: number;
+  readonly text: string;
+}
+
+// Past this many characters of one reply, the rest stays on screen.
+const MAX_SPOKEN_RAW = 1200;
+const SENTENCE_END = /[.!?:;](?=\s)|\n/g;
+
+/** End of the last whole sentence after `from` that is not inside an open code block. */
+function speakableBoundary(text: string, from: number): number {
+  let boundary = from;
+  for (const match of text.slice(from).matchAll(SENTENCE_END)) {
+    boundary = from + match.index + match[0].length;
+  }
+  const fenceCount = text.slice(0, boundary).split("```").length - 1;
+  if (fenceCount % 2 === 1) boundary = Math.max(from, text.lastIndexOf("```", boundary - 1));
+  return boundary;
+}
+
+/**
+ * The next piece of a reply to say aloud. Replies are spoken in order, each sentence as soon as
+ * it is written, so a reply that is still streaming holds back the ones after it.
+ */
+export function nextSpeechChunk(
   messages: ReadonlyArray<CallMessage>,
-  seenIds: ReadonlySet<string>,
-): ReadonlyArray<CallMessage> {
-  const replies: CallMessage[] = [];
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (!message || message.role === "system") continue;
-    if (message.role === "user" || seenIds.has(message.id)) break;
-    replies.unshift(message);
+  spoken: SpokenProgress,
+  shouldSpeak: (message: CallMessage) => boolean,
+): SpeechChunk | null {
+  for (const message of messages) {
+    if (message.role !== "assistant" || !shouldSpeak(message)) continue;
+    const from = spoken.get(message.id) ?? 0;
+    if (from === Infinity) continue;
+    if (from >= MAX_SPOKEN_RAW && (message.streaming || from < message.text.length)) {
+      return { messageId: message.id, end: Infinity, text: "The rest is on screen." };
+    }
+    const end = message.streaming ? speakableBoundary(message.text, from) : message.text.length;
+    const text = end > from ? speakableText(message.text.slice(from, end)) : "";
+    if (text !== "") return { messageId: message.id, end, text };
+    if (message.streaming) return null;
   }
-  // Speak in order: a reply still streaming holds back the ones after it.
-  const ready: CallMessage[] = [];
-  for (const reply of replies) {
-    if (reply.streaming) break;
-    if (reply.text.trim() !== "") ready.push(reply);
-  }
-  return ready;
+  return null;
+}
+
+/** Marks every reply so far as spoken: the caller talked over them or they predate this turn. */
+export function skipAllReplies(
+  messages: ReadonlyArray<CallMessage>,
+  spoken: SpokenProgress,
+): SpokenProgress {
+  const next = new Map(spoken);
+  for (const message of messages) next.set(message.id, Infinity);
+  return next;
+}
+
+export interface BargeInTracker {
+  readonly samples: number;
+  readonly baseline: number;
+  readonly loudSamples: number;
+}
+
+// The baseline follows the room and any echo of the agent's own voice, so only the caller
+// speaking clearly over it counts as cutting in.
+const BARGE_IN_WARMUP_SAMPLES = 5;
+const BARGE_IN_MIN_LEVEL = 0.18;
+const BARGE_IN_RATIO = 2.2;
+const BARGE_IN_SAMPLES = 4;
+const BASELINE_ALPHA = 0.05;
+
+export const startBargeIn = (): BargeInTracker => ({ samples: 0, baseline: 0, loudSamples: 0 });
+
+/** Advances the tracker with one mic level sample; `bargeIn` means the caller is talking over. */
+export function trackBargeIn(
+  tracker: BargeInTracker,
+  level: number,
+): { readonly tracker: BargeInTracker; readonly bargeIn: boolean } {
+  const loud =
+    tracker.samples >= BARGE_IN_WARMUP_SAMPLES &&
+    level >= Math.max(BARGE_IN_MIN_LEVEL, tracker.baseline * BARGE_IN_RATIO);
+  const loudSamples = loud ? tracker.loudSamples + 1 : 0;
+  const alpha = Math.max(BASELINE_ALPHA, 1 / (tracker.samples + 1));
+  const baseline = loud ? tracker.baseline : tracker.baseline + (level - tracker.baseline) * alpha;
+  return {
+    tracker: { samples: tracker.samples + 1, baseline, loudSamples },
+    bargeIn: loudSamples >= BARGE_IN_SAMPLES,
+  };
 }
 
 export interface VoiceProfile {
@@ -223,7 +299,65 @@ export function callAgentKey(speaker: string | null): CallAgentKey | null {
   return "claude";
 }
 
+export interface CrewThread {
+  readonly id: string;
+  readonly title: string;
+  readonly providerInstanceId: string;
+  readonly modelSelection: { readonly model: string };
+  readonly delegatedFrom?: { readonly threadId: string } | null | undefined;
+  readonly working: boolean;
+  readonly createdAtMs: number;
+}
+
+export interface CrewMember {
+  readonly threadId: string;
+  readonly task: string;
+  readonly working: boolean;
+}
+
+/** What each agent was handed from this call's chat: its newest delegated task and whether it's on it. */
+export function callCrew(
+  threads: ReadonlyArray<CrewThread>,
+  callThreadId: string,
+): Partial<Record<CallAgentKey, CrewMember>> {
+  const crew: Partial<Record<CallAgentKey, CrewMember & { readonly createdAtMs: number }>> = {};
+  for (const thread of threads) {
+    if (thread.delegatedFrom?.threadId !== callThreadId) continue;
+    const key = callAgentKey(`${thread.providerInstanceId} ${thread.modelSelection.model}`);
+    if (!key) continue;
+    const current = crew[key];
+    if (current && current.createdAtMs >= thread.createdAtMs) continue;
+    crew[key] = {
+      threadId: thread.id,
+      task: thread.title,
+      working: thread.working,
+      createdAtMs: thread.createdAtMs,
+    };
+  }
+  return Object.fromEntries(
+    Object.entries(crew).map(([key, { createdAtMs: _, ...member }]) => [key, member]),
+  );
+}
+
 const CALL_SCREEN_KEY = "acwa-call-screen";
+const TALK_TO_CUT_IN_KEY = "acwa-call-talk-to-cut-in";
+
+/** Whether talking over an agent cuts it off; laptop speakers can echo into the mic. */
+export function readTalkToCutIn(): boolean {
+  try {
+    return window.localStorage.getItem(TALK_TO_CUT_IN_KEY) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+export function writeTalkToCutIn(enabled: boolean): void {
+  try {
+    window.localStorage.setItem(TALK_TO_CUT_IN_KEY, enabled ? "1" : "0");
+  } catch {
+    // Storage can be unavailable (private mode); the choice just won't persist.
+  }
+}
 
 /** The web app on a phone is used for calls (the T3 Code mobile app is for typing). */
 function isPhoneApp(): boolean {

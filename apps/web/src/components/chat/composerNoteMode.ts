@@ -108,6 +108,19 @@ export interface AutoRoute {
   readonly general: ModelSelection | null;
 }
 
+// "Gemini, what do you think?", "hey Claude …", "ask ChatGPT …": the caller picks who answers.
+const addressed = (names: string) =>
+  new RegExp(
+    `^\\W*(?:(?:hey|hi|ok|okay|yo|so)\\W+)?(?:${names})\\b|\\bask (?:${names})\\b|\\b(?:${names}),`,
+    "i",
+  );
+
+const NAMED_AGENTS = [
+  { label: "Claude", driver: "claudeAgent", model: /opus/i, names: addressed("claude|opus") },
+  { label: "Gemini", driver: "antigravity", model: null, names: addressed("gemini") },
+  { label: "ChatGPT", driver: "codex", model: /\bsol\b/i, names: addressed("chat ?gpt|gpt|codex") },
+] as const;
+
 const TOPIC_ROUTES: ReadonlyArray<{
   readonly reason: string;
   readonly driver: string;
@@ -154,6 +167,17 @@ export function autoRoute(
   fallback: ModelSelection,
 ): AutoRoute {
   let topic: AutoRoute["topic"] = null;
+  const named = NAMED_AGENTS.filter((agent) => agent.names.test(prompt));
+  // Jobs for several agents go to Claude, who hands each one out and keeps track.
+  const lead = named.length > 1 ? NAMED_AGENTS[0] : named[0];
+  const leadSelection = lead ? pickModel(entries, lead.driver, lead.model) : null;
+  if (lead && leadSelection) {
+    const reason = named.length > 1 ? "assigning work" : `asked for ${lead.label}`;
+    return {
+      topic: { reason, selection: leadSelection },
+      general: generalRoute(entries, fallback),
+    };
+  }
   for (const route of TOPIC_ROUTES) {
     if (!route.matches(prompt)) continue;
     const selection = pickModel(entries, route.driver, route.model);
@@ -162,10 +186,11 @@ export function autoRoute(
       break;
     }
   }
-  const general =
-    pickModel(entries, "claudeAgent", /opus/i) ??
-    (entries.some((entry) => entry.instanceId === fallback.instanceId && entry.isAvailable)
-      ? fallback
-      : null);
-  return { topic, general };
+  return { topic, general: generalRoute(entries, fallback) };
 }
+
+const generalRoute = (entries: ReadonlyArray<RouteEntry>, fallback: ModelSelection) =>
+  pickModel(entries, "claudeAgent", /opus/i) ??
+  (entries.some((entry) => entry.instanceId === fallback.instanceId && entry.isAvailable)
+    ? fallback
+    : null);

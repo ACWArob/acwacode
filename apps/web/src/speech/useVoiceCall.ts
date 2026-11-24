@@ -2,16 +2,24 @@ import type { VoiceInputState } from "@t3tools/client-runtime/voice-input";
 import { useEffect, useRef, useState } from "react";
 
 import { useStableCallback } from "~/hooks/useStableCallback";
+import { openLevelMonitor } from "./levelMonitor";
 import {
+  type BargeInTracker,
   type CallMessage,
   type SilenceTracker,
+  type SpokenProgress,
   type VoiceCallPhase,
   type VoiceProfile,
-  repliesToSpeak,
-  speakableText,
+  callAgentKey,
+  nextSpeechChunk,
+  readTalkToCutIn,
+  skipAllReplies,
+  startBargeIn,
   startSilenceTracker,
+  trackBargeIn,
   trackSilence,
   voiceProfileFor,
+  writeTalkToCutIn,
 } from "./voiceCall.logic";
 
 const LEVEL_SAMPLE_MS = 100;
@@ -96,14 +104,18 @@ export function useVoiceCall(input: {
   /** Resets the draft around the cursor: optional mentions before it, the voice hint after it. */
   readonly prepareDraft: (council: boolean) => void;
   readonly submit: () => void;
+  /** Stops the agent that is answering, when the caller cuts it off. */
+  readonly interrupt: () => void;
 }) {
   const [phase, setPhase] = useState<VoiceCallPhase>("off");
   const [council, setCouncil] = useState(false);
   const [talking, setTalking] = useState(false);
   const [speaker, setSpeaker] = useState<string | null>(null);
-  const [seenIds, setSeenIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [spoken, setSpoken] = useState<SpokenProgress>(() => new Map());
+  const [talkToCutIn, setTalkToCutInState] = useState(readTalkToCutIn);
   const latest = useRef(input);
   const tracker = useRef<SilenceTracker | null>(null);
+  const bargeIn = useRef<BargeInTracker>(startBargeIn());
   const stopSpeaking = useRef<(() => void) | null>(null);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- interval and speech callbacks read the latest props
   useEffect(() => {
@@ -122,7 +134,7 @@ export function useVoiceCall(input: {
   const finishTurn = useStableCallback(() => {
     if (phase !== "listening") return;
     tracker.current = null;
-    setSeenIds(new Set(latest.current.messages.map((message) => message.id)));
+    setSpoken((current) => skipAllReplies(latest.current.messages, current));
     setPhase("sending");
     latest.current.speech.submitAfterDictation(() => {
       latest.current.submit();
@@ -130,21 +142,40 @@ export function useVoiceCall(input: {
     });
   });
 
+  const stopVoice = () => {
+    stopSpeaking.current?.();
+    stopSpeaking.current = null;
+    setTalking(false);
+    setSpeaker(null);
+  };
+
   const startCall = useStableCallback((withCouncil: boolean) => {
     if (!latest.current.speech.available || phase !== "off") return;
     setCouncil(withCouncil);
-    setSeenIds(new Set(latest.current.messages.map((message) => message.id)));
+    setSpoken(skipAllReplies(latest.current.messages, new Map()));
     beginTurn(withCouncil);
   });
 
   const endCall = useStableCallback(() => {
-    stopSpeaking.current?.();
-    stopSpeaking.current = null;
+    stopVoice();
     tracker.current = null;
     latest.current.speech.cancel();
-    setTalking(false);
-    setSpeaker(null);
     setPhase("off");
+  });
+
+  // Like a real call: talking over the agent stops it and gives the caller the floor. In a team
+  // call the others keep working in the chat; only the spoken summary stops.
+  const cutIn = useStableCallback(() => {
+    if (phase !== "waiting" && phase !== "speaking") return;
+    stopVoice();
+    setSpoken((current) => skipAllReplies(latest.current.messages, current));
+    if (!council && latest.current.running) latest.current.interrupt();
+    beginTurn(council);
+  });
+
+  const setTalkToCutIn = useStableCallback((enabled: boolean) => {
+    writeTalkToCutIn(enabled);
+    setTalkToCutInState(enabled);
   });
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- samples the live microphone level to detect the end of the caller's turn
@@ -160,31 +191,69 @@ export function useVoiceCall(input: {
     return () => window.clearInterval(timer);
   }, [phase, finishTurn]);
 
-  const next =
-    phase === "waiting" || phase === "speaking"
-      ? (repliesToSpeak(input.messages, seenIds)[0] ?? null)
-      : null;
-  const doneTalking = phase === "speaking" && !talking && next === null && !input.running;
+  const agentTurn = phase === "waiting" || phase === "speaking";
+  const monitorBargeIn = agentTurn && talkToCutIn;
 
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- plays each finished reply through its agent's voice, one at a time
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- keeps a mic open while agents answer so the caller can talk over them
   useEffect(() => {
-    if (!next || talking || stopSpeaking.current) return;
-    const id = next.id;
-    const who = latest.current.speakerOf(next);
-    stopSpeaking.current = speak(speakableText(next.text), voiceProfileFor(who), {
+    if (!monitorBargeIn) return;
+    let closed = false;
+    let close = () => {};
+    let timer: number | undefined;
+    bargeIn.current = startBargeIn();
+    void openLevelMonitor().then(
+      (monitor) => {
+        if (closed) return monitor.close();
+        close = monitor.close;
+        timer = window.setInterval(() => {
+          const next = trackBargeIn(bargeIn.current, monitor.level());
+          bargeIn.current = next.tracker;
+          if (next.bargeIn) cutIn();
+        }, LEVEL_SAMPLE_MS);
+      },
+      () => {},
+    );
+    return () => {
+      closed = true;
+      window.clearInterval(timer);
+      close();
+    };
+  }, [monitorBargeIn, cutIn]);
+
+  const shouldSpeak = (message: CallMessage) =>
+    // In a team call the others talk in the chat; Claude, the lead, speaks the plan.
+    !council || callAgentKey(input.speakerOf(message) || null) === "claude";
+  const chunk = agentTurn ? nextSpeechChunk(input.messages, spoken, shouldSpeak) : null;
+  // A reply with nothing to say aloud (only Markdown) still counts as the agent having answered.
+  const replied = input.messages.some(
+    (message) => message.role === "assistant" && spoken.get(message.id) !== Infinity,
+  );
+  const doneTalking =
+    agentTurn && (phase === "speaking" || replied) && !talking && chunk === null && !input.running;
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- reads each reply aloud sentence by sentence as the agent writes it
+  useEffect(() => {
+    if (!chunk || talking || stopSpeaking.current) return;
+    const { messageId, end, text } = chunk;
+    const message = latest.current.messages.find((candidate) => candidate.id === messageId);
+    const who = message ? latest.current.speakerOf(message) : "";
+    stopSpeaking.current = speak(text, voiceProfileFor(who), {
       onStart: () => {
-        setSeenIds((seen) => new Set([...seen, id]));
+        setSpoken((current) => new Map(current).set(messageId, end));
+        // The agent's own voice changes what the mic hears; learn the room again.
+        bargeIn.current = startBargeIn();
         setPhase("speaking");
         setTalking(true);
         setSpeaker(who);
       },
       onDone: () => {
         stopSpeaking.current = null;
+        bargeIn.current = startBargeIn();
         setTalking(false);
         setSpeaker(null);
       },
     });
-  }, [next, talking]);
+  }, [chunk, talking]);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- hands the turn back to the caller once every agent has spoken
   useEffect(() => {
@@ -204,5 +273,15 @@ export function useVoiceCall(input: {
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- stops audio when the composer unmounts mid-call
   useEffect(() => () => stopSpeaking.current?.(), []);
 
-  return { phase, council, speaker, startCall, endCall, finishTurn };
+  return {
+    phase,
+    council,
+    speaker,
+    talkToCutIn,
+    startCall,
+    endCall,
+    finishTurn,
+    cutIn,
+    setTalkToCutIn,
+  };
 }

@@ -153,6 +153,7 @@ import {
   type CallMessage,
   readCallScreenOpen,
   VOICE_CALL_HINT,
+  VOICE_TEAM_HINT,
   writeCallScreenOpen,
 } from "../../speech/voiceCall.logic";
 import type { AssistantCitationSourceAnchor } from "~/lib/assistantTextSelection";
@@ -2369,13 +2370,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     prepareDraft: (council) => {
       const snapshot = readComposerSnapshot();
       const before = council ? "@all " : "";
-      applyPromptReplacement(0, snapshot.value.length, `${before}\n\n${VOICE_CALL_HINT}`, {
+      const hint = council ? VOICE_TEAM_HINT : VOICE_CALL_HINT;
+      applyPromptReplacement(0, snapshot.value.length, `${before}\n\n${hint}`, {
         expectedText: snapshot.value,
         focusEditorAfterReplace: false,
       });
       setComposerCursor(before.length);
     },
     submit: () => submitComposerRef.current(),
+    interrupt: () => void onInterrupt(),
   });
   const [callScreenOpen, setCallScreenOpen] = useState(readCallScreenOpen);
   const showCallScreen = (open: boolean) => {
@@ -3658,6 +3661,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             activity={callActivity(callTurnItems)}
             onStart={startCall}
             onDoneTalking={voiceCall.finishTurn}
+            onCutIn={voiceCall.cutIn}
+            talkToCutIn={voiceCall.talkToCutIn}
+            onTalkToCutInChange={voiceCall.setTalkToCutIn}
             onEnd={voiceCall.endCall}
             onClose={() => showCallScreen(false)}
           />,

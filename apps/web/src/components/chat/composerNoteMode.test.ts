@@ -102,6 +102,11 @@ describe("autoRoute", () => {
     ["help me plan the semester project", null],
     ["thanks!", null],
     [`hello there\n\n${VOICE_CALL_HINT}`, null],
+    ["Gemini, what do you think about this plan?", "antigravity-default"],
+    ["hey chatgpt how would you name it", "gpt-6.2-sol"],
+    ["ok so ask Claude to fix the bug", "claude-opus-5-5"],
+    ["compare gemini pricing plans", "antigravity-default"],
+    ["Gemini, look into grippers. ChatGPT, fix the parser.", "claude-opus-5-5"],
   ])("%s → %s", (prompt, topic) => {
     expect(pick(prompt).topic).toBe(topic);
   });

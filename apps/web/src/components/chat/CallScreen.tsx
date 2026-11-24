@@ -1,4 +1,5 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { threadRuntimeIsActive } from "@t3tools/client-runtime/state/shell";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
@@ -20,6 +21,7 @@ import { useProjects, useVisibleThreadShells } from "~/state/entities";
 import {
   CALL_AGENTS,
   callAgentKey,
+  callCrew,
   type CallActivityRow,
   type CallReadiness,
   type VoiceCallPhase,
@@ -27,6 +29,7 @@ import {
 import { buildThreadRouteParams } from "../../threadRoutes";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Switch } from "../ui/switch";
 
 const STATUS: Record<VoiceCallPhase, string> = {
   off: "Tap Call to talk",
@@ -62,15 +65,28 @@ export function CallScreen(props: {
   readonly activity: ReadonlyArray<CallActivityRow>;
   readonly onStart: (council: boolean) => void;
   readonly onDoneTalking: () => void;
+  readonly onCutIn: () => void;
+  readonly talkToCutIn: boolean;
+  readonly onTalkToCutInChange: (enabled: boolean) => void;
   readonly onEnd: () => void;
   readonly onClose: () => void;
 }) {
   const navigate = useNavigate();
   const [picking, setPicking] = useState(false);
+  const threads = useVisibleThreadShells();
+  const crew = callCrew(
+    threads.map((thread) => ({
+      ...thread,
+      working: threadRuntimeIsActive(thread.runtime),
+      createdAtMs: Date.parse(thread.createdAt),
+    })),
+    props.threadId,
+  );
   const ready = props.readiness.kind === "ready";
   const listening = props.phase === "listening";
   const speaking = callAgentKey(props.speaker);
   const active = props.phase !== "off";
+  const agentTurn = props.phase === "waiting" || props.phase === "speaking";
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-background">
@@ -98,20 +114,33 @@ export function CallScreen(props: {
       ) : (
         <>
           <section className="mx-auto grid w-full max-w-md grid-cols-4 gap-3 px-4 py-6">
-            {CALL_AGENTS.map((agent) => (
-              <div key={agent.key} className="flex flex-col items-center gap-2">
-                <div
-                  className={
-                    speaking === agent.key
-                      ? "flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-primary/30"
-                      : "flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
-                  }
-                >
-                  {agent.label.slice(0, 1)}
+            {CALL_AGENTS.map((agent) => {
+              const job = crew[agent.key];
+              return (
+                <div key={agent.key} className="flex min-w-0 flex-col items-center gap-1.5">
+                  <div
+                    className={
+                      speaking === agent.key
+                        ? "flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-primary/30"
+                        : job?.working
+                          ? "flex size-16 items-center justify-center rounded-full bg-muted text-foreground ring-2 ring-primary"
+                          : "flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                    }
+                  >
+                    {agent.label.slice(0, 1)}
+                  </div>
+                  <span className="text-xs">{agent.label}</span>
+                  {job ? (
+                    <span className="w-full text-center text-2xs text-muted-foreground">
+                      <span className={job.working ? "text-primary" : ""}>
+                        {job.working ? "Working" : "Done"}
+                      </span>
+                      <span className="line-clamp-2 break-words">{job.task}</span>
+                    </span>
+                  ) : null}
                 </div>
-                <span className="text-xs">{agent.label}</span>
-              </div>
-            ))}
+              );
+            })}
           </section>
 
           <section className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-6 text-center">
@@ -136,7 +165,7 @@ export function CallScreen(props: {
               <p className="text-destructive text-sm">{props.micError}</p>
             ) : (
               <p className="text-muted-foreground text-sm">
-                {props.council && active ? "Council · " : ""}
+                {props.council && active ? "Team · " : ""}
                 {listening && !props.micRecording ? "Starting the mic…" : STATUS[props.phase]}
               </p>
             )}
@@ -150,6 +179,21 @@ export function CallScreen(props: {
             ) : null}
             {listening && props.heard ? (
               <p className="line-clamp-3 text-sm">{props.heard}</p>
+            ) : null}
+            {agentTurn ? (
+              <p className="text-muted-foreground text-xs">
+                {props.talkToCutIn ? "Just start talking to cut in" : "Tap Cut in to talk"}
+                {props.council ? " · the team writes in the chat, Claude speaks" : ""}
+              </p>
+            ) : null}
+            {ready ? (
+              <label className="flex min-h-11 items-center gap-2 text-muted-foreground text-xs">
+                <Switch
+                  checked={props.talkToCutIn}
+                  onCheckedChange={(checked) => props.onTalkToCutInChange(checked)}
+                />
+                Talk to cut in (turn off if your speaker sets it off)
+              </label>
             ) : null}
           </section>
 
@@ -183,6 +227,12 @@ export function CallScreen(props: {
             Done talking
           </Button>
         ) : null}
+        {agentTurn ? (
+          <Button size="xl" onClick={props.onCutIn}>
+            <MicIcon />
+            Cut in
+          </Button>
+        ) : null}
         {active ? (
           <Button variant="destructive" size="xl" onClick={props.onEnd}>
             <PhoneOffIcon />
@@ -201,7 +251,7 @@ export function CallScreen(props: {
               onClick={() => props.onStart(true)}
             >
               <UsersIcon />
-              Council
+              Team
             </Button>
           </>
         )}

@@ -2,13 +2,17 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   callActivity,
+  callCrew,
   callReadiness,
   callAgentKey,
   END_OF_TURN_SILENCE_MS,
   MAX_TURN_MS,
-  repliesToSpeak,
+  nextSpeechChunk,
+  skipAllReplies,
   speakableText,
+  startBargeIn,
   startSilenceTracker,
+  trackBargeIn,
   trackSilence,
   voiceProfileFor,
 } from "./voiceCall.logic";
@@ -85,31 +89,96 @@ describe("speakableText", () => {
   });
 });
 
-describe("repliesToSpeak", () => {
+describe("nextSpeechChunk", () => {
   const user = { id: "u1", runId: null, role: "user", text: "hi", streaming: false } as const;
   const claude = {
     id: "a1",
     runId: "r1",
     role: "assistant",
-    text: "Hello!",
+    text: "Hello! Let me look.",
     streaming: false,
   } as const;
   const gpt = { id: "a2", runId: "r2", role: "assistant", text: "Hey.", streaming: false } as const;
+  const everyone = () => true;
+  const none = new Map<string, number>();
 
-  it("returns every finished reply after the last question, in order", () => {
-    expect(repliesToSpeak([user, claude, gpt], new Set())).toEqual([claude, gpt]);
+  it("speaks each finished sentence of a reply while it is still streaming", () => {
+    const streaming = { ...claude, text: "Hello! Let me lo", streaming: true };
+    expect(nextSpeechChunk([user, streaming], none, everyone)).toEqual({
+      messageId: "a1",
+      end: 6,
+      text: "Hello!",
+    });
+    expect(nextSpeechChunk([user, streaming], new Map([["a1", 6]]), everyone)).toBeNull();
+    expect(nextSpeechChunk([user, claude], new Map([["a1", 6]]), everyone)).toEqual({
+      messageId: "a1",
+      end: claude.text.length,
+      text: "Let me look.",
+    });
   });
 
-  it("holds back replies behind one that is still streaming", () => {
-    expect(repliesToSpeak([user, { ...claude, streaming: true }, gpt], new Set())).toEqual([]);
-    expect(repliesToSpeak([user, claude, { ...gpt, streaming: true }], new Set())).toEqual([
-      claude,
-    ]);
+  it("speaks replies in order and holds later ones behind a streaming one", () => {
+    const streaming = { ...claude, text: "Hello! Let me lo", streaming: true };
+    expect(nextSpeechChunk([user, streaming, gpt], new Map([["a1", 6]]), everyone)).toBeNull();
+    expect(
+      nextSpeechChunk([user, claude, gpt], new Map([["a1", Infinity]]), everyone)?.messageId,
+    ).toBe("a2");
   });
 
-  it("skips replies already spoken or from before the question", () => {
-    expect(repliesToSpeak([user, claude, gpt], new Set(["a1"]))).toEqual([gpt]);
-    expect(repliesToSpeak([claude, user], new Set())).toEqual([]);
+  it("waits for a code block to close instead of reading it", () => {
+    const code = { ...claude, text: "Here:\n```ts\nconst a = 1;\nb();", streaming: true };
+    expect(nextSpeechChunk([code], none, everyone)?.end).toBe(6);
+    expect(nextSpeechChunk([code], new Map([["a1", 6]]), everyone)).toBeNull();
+    const closed = { ...code, text: `${code.text}\n\`\`\`\nDone.\n` };
+    expect(nextSpeechChunk([closed], new Map([["a1", 6]]), everyone)?.text).toBe(
+      "(code is on screen) Done.",
+    );
+  });
+
+  it("skips replies that are not spoken, such as teammates in a team call", () => {
+    expect(
+      nextSpeechChunk([user, gpt, claude], none, (message) => message.id === "a1")?.messageId,
+    ).toBe("a1");
+  });
+
+  it("skips replies from before the turn once they are marked spoken", () => {
+    expect(nextSpeechChunk([claude, user], skipAllReplies([claude, user], none), everyone)).toBe(
+      null,
+    );
+  });
+
+  it("stops a very long reply and points to the screen", () => {
+    const long = { ...claude, text: "Word. ".repeat(400), streaming: true };
+    expect(nextSpeechChunk([long], new Map([["a1", 1300]]), everyone)).toEqual({
+      messageId: "a1",
+      end: Infinity,
+      text: "The rest is on screen.",
+    });
+  });
+});
+
+describe("trackBargeIn", () => {
+  const feed = (levels: ReadonlyArray<number>) => {
+    let tracker = startBargeIn();
+    let bargeIn = false;
+    for (const level of levels) {
+      ({ tracker, bargeIn } = trackBargeIn(tracker, level));
+      if (bargeIn) return true;
+    }
+    return false;
+  };
+
+  it("cuts in when the caller talks clearly over the agent", () => {
+    expect(feed([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.4, 0.4, 0.4, 0.4])).toBe(true);
+  });
+
+  it("ignores a steady echo of the agent's own voice and short noises", () => {
+    expect(feed(Array.from({ length: 40 }, () => 0.22))).toBe(false);
+    expect(feed([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.5, 0.5, 0.05, 0.5, 0.5, 0.05])).toBe(false);
+  });
+
+  it("does not cut in while it is still learning the room", () => {
+    expect(feed([0.5, 0.5, 0.5, 0.5])).toBe(false);
   });
 });
 
@@ -193,5 +262,35 @@ describe("callReadiness", () => {
     expect(
       callReadiness({ available: false, destinationChosen: true, unsupportedReason: "No model" }),
     ).toEqual({ kind: "unavailable", reason: "No model" });
+  });
+});
+
+describe("callCrew", () => {
+  const child = (id: string, provider: string, model: string, createdAtMs: number, extra = {}) => ({
+    id,
+    title: `task ${id}`,
+    providerInstanceId: provider,
+    modelSelection: { model },
+    delegatedFrom: { threadId: "call" },
+    working: false,
+    createdAtMs,
+    ...extra,
+  });
+
+  it("shows each agent's newest task from this chat and whether it is working", () => {
+    expect(
+      callCrew(
+        [
+          child("g1", "antigravity", "antigravity-default", 1),
+          child("g2", "antigravity", "antigravity-default", 2, { working: true }),
+          child("c1", "codex", "gpt-6.2-sol", 1),
+          { ...child("x", "codex", "gpt-6.2-sol", 9), delegatedFrom: { threadId: "other" } },
+        ],
+        "call",
+      ),
+    ).toEqual({
+      gemini: { threadId: "g2", task: "task g2", working: true },
+      gpt: { threadId: "c1", task: "task c1", working: false },
+    });
   });
 });

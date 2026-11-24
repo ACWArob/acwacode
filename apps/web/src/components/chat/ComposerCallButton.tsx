@@ -21,14 +21,14 @@ export function ComposerCallButton(props: {
   onStart(council: boolean): void;
   onEnd(): void;
   onOpenScreen(): void;
-  /** A narrow composer shows one button that opens the call screen, which has Call and Council. */
+  /** A narrow composer shows one button that opens the call screen, which has Call and Team. */
   compact?: boolean;
 }) {
   if (props.phase !== "off") {
     return (
       <div className="flex shrink-0 items-center gap-1.5" role="status" aria-live="polite">
         <span className="text-sm text-muted-foreground">
-          {props.council ? "Council · " : ""}
+          {props.council ? "Team · " : ""}
           {STATUS[props.phase]}
         </span>
         <Button
@@ -64,13 +64,13 @@ export function ComposerCallButton(props: {
     <>
       <CallStartButton
         available={props.available}
-        label="Start a voice call"
+        label="Start a voice call (the best agent for what you say answers)"
         icon={<PhoneIcon />}
         onClick={() => props.onStart(false)}
       />
       <CallStartButton
         available={props.available}
-        label="Start a council call (every agent answers, each in its own voice)"
+        label="Start a team call (agents plan in the chat, Claude leads and speaks)"
         icon={<UsersIcon />}
         onClick={() => props.onStart(true)}
       />
