@@ -1,4 +1,9 @@
-import { CommandId, MessageId, type OrchestrationV2Command } from "@t3tools/contracts";
+import {
+  CommandId,
+  MessageId,
+  type ModelSelection,
+  type OrchestrationV2Command,
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -19,22 +24,50 @@ export function limitRecoveryCommand(
   autoResume: boolean,
   nowMs: number,
   snooze = false,
+  switchTo: ModelSelection | null = null,
 ): OrchestrationV2Command | null {
   if (
     thread.status !== "failed" ||
     thread.lastErrorClass !== "usage_limit" ||
     !thread.latestRunId ||
-    !thread.usageLimitResetAt ||
     thread.archivedAt !== null ||
     thread.settledOverride === "settled" ||
     thread.pendingRuntimeRequest !== null
   )
     return null;
-  const resetMs = Date.parse(thread.usageLimitResetAt);
+  const failedMs = DateTime.toEpochMillis(thread.latestRunCompletedAt ?? thread.updatedAt);
+  const resetMs = thread.usageLimitResetAt ? Date.parse(thread.usageLimitResetAt) : null;
+  if (
+    switchTo !== null &&
+    thread.latestRunProviderInstanceId !== undefined &&
+    thread.latestRunProviderInstanceId !== switchTo.instanceId &&
+    // A model the user picked after the failure is theirs to send to.
+    thread.providerInstanceId === thread.latestRunProviderInstanceId &&
+    (thread.snoozedUntil == null || DateTime.toEpochMillis(thread.snoozedUntil) <= nowMs) &&
+    nowMs - failedMs <= MAX_OVERDUE_ARM_MS &&
+    !(resetMs !== null && resetMs <= nowMs)
+  ) {
+    const switchIdentity = `limit-switch:${thread.id}:${thread.latestRunId}`;
+    return {
+      type: "message.dispatch",
+      commandId: CommandId.make(switchIdentity),
+      messageId: MessageId.make(switchIdentity),
+      threadId: thread.id,
+      usageLimitContinuationOfRunId: thread.latestRunId,
+      modelSelection: switchTo,
+      text: `Continue where you left off. (The previous agent hit its usage limit, so this is continuing on ${switchTo.model}.)`,
+      attachments: [],
+      dispatchMode: { type: "start_immediately" },
+      createdBy: "agent",
+      creationSource: "server",
+    };
+  }
   // An already-expired window reported with a fresh failure cannot start a retry loop.
   if (
+    !thread.usageLimitResetAt ||
+    resetMs === null ||
     !Number.isFinite(resetMs) ||
-    resetMs <= DateTime.toEpochMillis(thread.latestRunCompletedAt ?? thread.updatedAt)
+    resetMs <= failedMs
   )
     return null;
   const identity = `${thread.id}:${thread.latestRunId}:${resetMs}`;
@@ -105,10 +138,14 @@ const makeSweep = Effect.gen(function* () {
     if (yield* due.isIdle(nowMs)) return;
     const readVersion = yield* due.version;
     const preferences = yield* settings.getSettings;
+    const switchTo = preferences.switchModelOnUsageLimit
+      ? preferences.fallbackModelSelection
+      : null;
     const candidates = yield* projections.getLimitRecoveryCandidates({
       now,
       autoResume: preferences.autoResumeLimitedThreads,
       snooze: preferences.snoozeLimitedThreads,
+      switchTo: switchTo?.instanceId ?? null,
     });
     let acted = false;
     for (const thread of candidates) {
@@ -117,6 +154,7 @@ const makeSweep = Effect.gen(function* () {
         preferences.autoResumeLimitedThreads,
         nowMs,
         preferences.snoozeLimitedThreads,
+        switchTo,
       );
       if (command === null) continue;
       acted = true;

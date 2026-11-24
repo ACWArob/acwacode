@@ -1,5 +1,11 @@
 import { assert, describe, it } from "@effect/vitest";
-import { RunId, ThreadId, type OrchestrationV2DomainEvent } from "@t3tools/contracts";
+import {
+  ProviderInstanceId,
+  RunId,
+  ThreadId,
+  type ModelSelection,
+  type OrchestrationV2DomainEvent,
+} from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
@@ -88,6 +94,8 @@ const failedThread = (failedAgoMs: number, resetAgoMs: number) => {
     pendingRuntimeRequest: null,
     limitRecovery: null,
     snoozedUntil: null,
+    providerInstanceId: ProviderInstanceId.make("codex"),
+    latestRunProviderInstanceId: ProviderInstanceId.make("codex"),
   };
   return candidate;
 };
@@ -114,5 +122,92 @@ describe("limitRecoveryCommand arming", () => {
   it("does not arm a reset that is 24 hours and 1ms overdue", () => {
     const thread = failedThread(30 * HOUR_MS, 24 * HOUR_MS + 1);
     assert.isNull(limitRecoveryCommand(thread, true, nowMs));
+  });
+});
+
+describe("limitRecoveryCommand model switch", () => {
+  const backup: ModelSelection = {
+    instanceId: ProviderInstanceId.make("claude"),
+    model: "claude-sonnet-4-5",
+  };
+  // Failed ten minutes ago; the limit resets in an hour.
+  const limited = () => failedThread(10 * 60 * 1000, -HOUR_MS);
+
+  it("continues on the backup now, even over an armed resume", () => {
+    const thread = limited();
+    const armed = {
+      ...thread,
+      limitRecovery: {
+        runId: thread.latestRunId!,
+        resetAt: thread.usageLimitResetAt!,
+        autoResume: true,
+      },
+    };
+    for (const candidate of [thread, armed]) {
+      assert.deepEqual(limitRecoveryCommand(candidate, true, nowMs, true, backup), {
+        type: "message.dispatch",
+        commandId: "limit-switch:thread:limited:run:limited",
+        messageId: "limit-switch:thread:limited:run:limited",
+        threadId: thread.id,
+        usageLimitContinuationOfRunId: thread.latestRunId!,
+        modelSelection: backup,
+        text: "Continue where you left off. (The previous agent hit its usage limit, so this is continuing on claude-sonnet-4-5.)",
+        attachments: [],
+        dispatchMode: { type: "start_immediately" },
+        createdBy: "agent",
+        creationSource: "server",
+      } as never);
+    }
+  });
+
+  it("keys the command to the failed run so later sweeps cannot send twice", () => {
+    const first = limitRecoveryCommand(limited(), false, nowMs, false, backup);
+    const later = limitRecoveryCommand(limited(), false, nowMs + 60_000, false, backup);
+    assert.equal(later?.commandId, first?.commandId);
+    assert(first?.type === "message.dispatch" && later?.type === "message.dispatch");
+    assert.equal(later.messageId, first.messageId);
+    const nextRun = limitRecoveryCommand(
+      { ...limited(), latestRunId: RunId.make("run:next") },
+      false,
+      nowMs,
+      false,
+      backup,
+    );
+    assert.notEqual(nextRun?.commandId, first.commandId);
+  });
+
+  it.each([
+    ["the setting is off", limited(), null],
+    [
+      "the failed run already used the backup",
+      { ...limited(), latestRunProviderInstanceId: backup.instanceId },
+      backup,
+    ],
+    [
+      "the user picked another model since",
+      { ...limited(), providerInstanceId: ProviderInstanceId.make("gemini") },
+      backup,
+    ],
+    [
+      "the thread is snoozed",
+      { ...limited(), snoozedUntil: DateTime.makeUnsafe(nowMs + 60_000) },
+      backup,
+    ],
+    ["the thread is archived", { ...limited(), archivedAt: DateTime.makeUnsafe(nowMs) }, backup],
+    ["the thread is settled", { ...limited(), settledOverride: "settled" as const }, backup],
+    ["a request is pending", { ...limited(), pendingRuntimeRequest: {} as never }, backup],
+    ["the limit already reset", failedThread(2 * HOUR_MS, HOUR_MS), backup],
+    ["the failure is over a day old", failedThread(24 * HOUR_MS + 1, -HOUR_MS), backup],
+  ])("does not switch when %s", (_, thread, switchTo) => {
+    const command = limitRecoveryCommand(thread, false, nowMs, false, switchTo);
+    assert.notEqual(command?.type, "message.dispatch");
+  });
+
+  it("arms resume-at-reset as before when it does not switch", () => {
+    const thread = { ...limited(), latestRunProviderInstanceId: backup.instanceId };
+    assert.equal(
+      limitRecoveryCommand(thread, true, nowMs, false, backup)?.type,
+      "thread.metadata.update",
+    );
   });
 });

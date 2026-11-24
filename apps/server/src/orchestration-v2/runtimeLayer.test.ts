@@ -11594,6 +11594,128 @@ it.layer(layerTest)("usage-limit recovery", (it) => {
       }),
   );
 
+  it.effect(
+    "continues a usage-limited thread on another provider without waiting for the reset",
+    () =>
+      Effect.gen(function* () {
+        const orchestrator = yield* Orchestrator.OrchestratorV2;
+        const events = yield* EventSink.EventSinkV2;
+        const projections = yield* ProjectionStore.ProjectionStoreV2;
+        const threadId = ThreadId.make("recovery:switch");
+        const projectId = ProjectId.make("recovery:project:switch");
+        yield* seedProject({
+          projectId,
+          title: "Recovery project",
+          workspaceRoot: process.cwd(),
+          defaultModelSelection: modelSelection,
+          createdAt: DateTime.formatIso(yield* DateTime.now),
+        });
+        yield* orchestrator.dispatch({
+          type: "thread.create",
+          commandId: CommandId.make("recovery:create:switch"),
+          threadId,
+          projectId,
+          title: "Limited thread",
+          modelSelection,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+          createdBy: "user",
+          creationSource: "web",
+        });
+        yield* orchestrator.dispatch({
+          type: "message.dispatch",
+          commandId: CommandId.make("recovery:message:switch"),
+          threadId,
+          messageId: MessageId.make("recovery:message:switch"),
+          text: "Work on this.",
+          attachments: [],
+          dispatchMode: { type: "defer_start" },
+          createdBy: "user",
+          creationSource: "web",
+        });
+        const run = (yield* orchestrator.getThreadProjection(threadId)).runs[0]!;
+        const now = yield* DateTime.now;
+        yield* events.write({
+          commandId: CommandId.make("recovery:failure:switch"),
+          events: [
+            {
+              id: EventId.make("recovery:run:switch"),
+              type: "run.updated",
+              threadId,
+              occurredAt: now,
+              payload: { ...run, status: "failed", completedAt: now },
+            },
+            {
+              id: EventId.make("recovery:error:switch"),
+              type: "turn-item.updated",
+              threadId,
+              occurredAt: now,
+              payload: {
+                id: TurnItemId.make("recovery:error:switch"),
+                type: "error",
+                threadId,
+                runId: run.id,
+                nodeId: run.rootNodeId,
+                providerThreadId: null,
+                providerTurnId: null,
+                nativeItemRef: null,
+                parentItemId: null,
+                ordinal: 2,
+                status: "failed",
+                title: "Usage limit reached",
+                startedAt: now,
+                completedAt: now,
+                updatedAt: now,
+                failure: {
+                  class: "usage_limit",
+                  message: "Plan limit reached.",
+                  code: "usageLimitExceeded",
+                  retryable: null,
+                  resetAt: DateTime.formatIso(DateTime.add(now, { hours: 1 })),
+                },
+              },
+            },
+          ],
+        });
+        const backup = { instanceId: alternateInstanceId, model: "gpt-5.5" };
+        const candidate = (yield* projections.getLimitRecoveryCandidates({
+          now,
+          autoResume: false,
+          snooze: false,
+          switchTo: backup.instanceId,
+        })).find((row) => row.id === threadId)!;
+        const nowMs = DateTime.toEpochMillis(now);
+        const command = limitRecoveryCommand(candidate, false, nowMs, false, backup);
+        assert(command?.type === "message.dispatch");
+        yield* orchestrator.dispatch(command);
+        yield* orchestrator.dispatch(command);
+        const after = yield* orchestrator.getThreadProjection(threadId);
+        assert.lengthOf(after.runs, 2);
+        assert.deepInclude(after.runs[1], {
+          status: "starting",
+          modelSelection: backup,
+          usageLimitContinuationOfRunId: run.id,
+        });
+        assert.deepInclude(after.messages.at(-1), {
+          text: command.text,
+          createdBy: "agent",
+          creationSource: "server",
+        });
+        // The continuation now leads the thread, so a later sweep finds nothing to switch.
+        assert.isNull(
+          limitRecoveryCommand(
+            ProjectionStore.threadShellFromProjection(after),
+            false,
+            nowMs,
+            false,
+            backup,
+          ),
+        );
+      }),
+  );
+
   it.effect.each([
     "resume",
     "resume-started",

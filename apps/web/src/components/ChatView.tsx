@@ -2599,6 +2599,13 @@ export default function ChatView(props: ChatViewProps) {
     });
     return item ? [item] : [];
   });
+  const limitSwitchSelection =
+    settings.switchModelOnUsageLimit &&
+    activeThreadShell !== null &&
+    settings.fallbackModelSelection !== null &&
+    settings.fallbackModelSelection.instanceId !== activeThreadShell.providerInstanceId
+      ? settings.fallbackModelSelection
+      : null;
   const limitRecoveryBanner =
     limitRecoveryRun !== null && activeThreadShell !== null
       ? usageLimitRecoveryBannerItem({
@@ -2610,6 +2617,16 @@ export default function ChatView(props: ChatViewProps) {
           requestPending: pendingApprovals.length > 0 || pendingUserInputs.length > 0,
           recovery: activeThreadShell.limitRecovery ?? null,
           snoozedUntil: activeThreadShell.snoozedUntil,
+          switchingTo:
+            limitSwitchSelection === null ||
+            activeThreadShell.settledOverride === "settled" ||
+            pendingApprovals.length > 0 ||
+            pendingUserInputs.length > 0
+              ? null
+              : (providerStatuses
+                  .find((provider) => provider.instanceId === limitSwitchSelection.instanceId)
+                  ?.models.find((model) => model.slug === limitSwitchSelection.model)?.name ??
+                limitSwitchSelection.model),
           timestampFormat,
           onChange: async (limitRecovery) => {
             const result = await updateThreadMetadata({

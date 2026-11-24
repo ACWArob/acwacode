@@ -6991,15 +6991,20 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       const failure = latestRootProviderFailure(run, projection.turnItems);
       const recovery = projection.thread.limitRecovery;
       const now = yield* DateTime.now;
+      // A switch to another provider continues now; a resume on the same one waits for its armed reset.
+      const switchesProvider =
+        command.modelSelection !== undefined &&
+        command.modelSelection.instanceId !== run?.providerInstanceId;
       if (
         run?.id !== command.usageLimitContinuationOfRunId ||
         failure?.class !== "usage_limit" ||
         threadShellFromProjection(projection).lastErrorClass !== "usage_limit" ||
-        !recovery?.autoResume ||
-        recovery.requestId !== command.usageLimitRecoveryRequestId ||
-        recovery.runId !== run.id ||
-        recovery.resetAt !== failure.resetAt ||
-        Date.parse(recovery.resetAt) > DateTime.toEpochMillis(now) ||
+        (!switchesProvider &&
+          (!recovery?.autoResume ||
+            recovery.requestId !== command.usageLimitRecoveryRequestId ||
+            recovery.runId !== run.id ||
+            recovery.resetAt !== failure.resetAt ||
+            Date.parse(recovery.resetAt) > DateTime.toEpochMillis(now))) ||
         projection.thread.archivedAt !== null ||
         projection.thread.deletedAt !== null ||
         projection.thread.settledOverride === "settled" ||
@@ -7017,7 +7022,8 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           occurredAt: now,
           payload: {
             ...projection.thread,
-            ...(recovery?.autoResume &&
+            ...(!switchesProvider &&
+            recovery?.autoResume &&
             recovery.requestId === command.usageLimitRecoveryRequestId &&
             recovery.runId === command.usageLimitContinuationOfRunId &&
             projection.thread.snoozedUntil != null &&

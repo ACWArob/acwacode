@@ -30,6 +30,8 @@ type RecoveryProps = {
   requestPending: boolean;
   snoozedUntil: string | null;
   recovery: OrchestrationV2LimitRecovery | null;
+  /** The fallback model name when the server is about to continue on it. */
+  switchingTo?: string | null;
   timestampFormat: TimestampFormat;
   onChange: (recovery: OrchestrationV2LimitRecoveryUpdate) => Promise<void>;
 };
@@ -44,6 +46,7 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
     requestPending,
     recovery,
     snoozedUntil,
+    switchingTo,
     timestampFormat,
   } = props;
   // The server refuses recovery changes while a request is pending.
@@ -53,9 +56,10 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
     canSchedule && recovery?.runId === runId && recovery.resetAt === resetAt && recovery.autoResume;
   const workspaceLimit = errorCode === CHATGPT_WORKSPACE_USAGE_LIMIT_CODE;
   const chatGptLimit = workspaceLimit || errorCode === CHATGPT_USAGE_LIMIT_CODE;
-  const recoveryActions = canSchedule ? (
-    <RecoveryActions key={`${runId}:${resetAt}`} {...props} />
-  ) : null;
+  const recoveryActions =
+    canSchedule || switchingTo ? (
+      <RecoveryActions key={`${runId}:${resetAt}`} {...props} canSchedule={canSchedule} />
+    ) : null;
   const displayAt =
     resumes && resetAt && snoozedUntil && Date.parse(snoozedUntil) > Date.parse(resetAt)
       ? snoozedUntil
@@ -99,8 +103,28 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
   };
 }
 
-function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: RecoveryProps) {
+// The server switches only while the limit holds and within a day of the failure.
+const SWITCH_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function RecoveryActions({
+  runId,
+  resetAt,
+  stoppedAt,
+  recovery,
+  snoozedUntil,
+  switchingTo,
+  canSchedule,
+  onChange,
+}: RecoveryProps & { canSchedule: boolean }) {
   const [pending, setPending] = useState(false);
+  const resetMs = resetAt === null ? Number.NaN : Date.parse(resetAt);
+  const switchWindowPassed = useDeadlinePassed(
+    Math.min(
+      Number.isFinite(resetMs) ? resetMs : Infinity,
+      Date.parse(stoppedAt) + SWITCH_WINDOW_MS,
+    ),
+  );
+  const snoozeEnded = useDeadlinePassed(snoozedUntil === null ? null : Date.parse(snoozedUntil));
 
   const scheduled =
     recovery?.runId === runId && recovery.resetAt === resetAt && recovery.autoResume;
@@ -137,6 +161,9 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     }
     setPending(false);
   }
+  if (switchingTo && !switchWindowPassed && (snoozedUntil === null || snoozeEnded))
+    return <span className="px-1 text-muted-foreground">Switching to {switchingTo}…</span>;
+  if (!canSchedule) return null;
   // Inline errors would widen the actions column and crush the title.
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">

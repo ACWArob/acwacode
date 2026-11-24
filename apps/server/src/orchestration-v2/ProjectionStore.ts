@@ -195,7 +195,11 @@ export type ProjectionLimitRecoveryCandidate = Pick<
   | "updatedAt"
   | "limitRecovery"
   | "snoozedUntil"
->;
+  | "providerInstanceId"
+> & {
+  /** The failed run's provider. A thread shell has none, so it never switches models. */
+  readonly latestRunProviderInstanceId?: ProviderInstanceId;
+};
 
 export type ProjectionThreadPullRequests = Pick<
   OrchestrationV2AppThread,
@@ -630,6 +634,8 @@ export interface ProjectionStoreV2Shape {
     readonly now: DateTime.Utc;
     readonly autoResume: boolean;
     readonly snooze: boolean;
+    /** The fallback provider when switching models on a usage limit is on. */
+    readonly switchTo?: ProviderInstanceId | null;
   }) => Effect.Effect<ReadonlyArray<ProjectionLimitRecoveryCandidate>, ProjectionStoreV2Error>;
   /** Epoch ms of the next armed reset or snooze end after `now`, when a waiting thread becomes a candidate. */
   readonly getLimitRecoveryWakeAt: (
@@ -4748,8 +4754,10 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           readonly completed_at: string | null;
           readonly failure_payload_json: string;
           readonly last_error: string | null;
+          readonly run_provider_instance_id: string;
         }>`
           SELECT t.payload_json, r.run_id, r.completed_at,
+            json_extract(r.payload_json, '$.providerInstanceId') AS run_provider_instance_id,
             item.payload_json AS failure_payload_json,
             (
               SELECT json_extract(session.payload_json, '$.lastError')
@@ -4796,29 +4804,58 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             AND t.archived_at IS NULL
             AND json_extract(t.payload_json, '$.settledOverride') IS NOT 'settled'
             AND json_extract(item.payload_json, '$.failure.class') = 'usage_limit'
-            AND json_extract(item.payload_json, '$.failure.resetAt') IS NOT NULL
-            AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) > julianday(COALESCE(r.completed_at, json_extract(t.payload_json, '$.updatedAt')))
             AND (
               (
-                json_extract(t.payload_json, '$.limitRecovery.runId') IS r.run_id
-                AND json_extract(t.payload_json, '$.limitRecovery.resetAt') IS json_extract(item.payload_json, '$.failure.resetAt')
-                AND json_extract(t.payload_json, '$.limitRecovery.autoResume') = 1
-                AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) <= julianday(${DateTime.formatIso(options.now)})
+                json_extract(item.payload_json, '$.failure.resetAt') IS NOT NULL
+                AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) > julianday(COALESCE(r.completed_at, json_extract(t.payload_json, '$.updatedAt')))
+                AND (
+                  (
+                    json_extract(t.payload_json, '$.limitRecovery.runId') IS r.run_id
+                    AND json_extract(t.payload_json, '$.limitRecovery.resetAt') IS json_extract(item.payload_json, '$.failure.resetAt')
+                    AND json_extract(t.payload_json, '$.limitRecovery.autoResume') = 1
+                    AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) <= julianday(${DateTime.formatIso(options.now)})
+                    AND (
+                      json_extract(t.payload_json, '$.snoozedUntil') IS NULL
+                      OR julianday(json_extract(t.payload_json, '$.snoozedUntil')) <= julianday(${DateTime.formatIso(options.now)})
+                    )
+                  )
+                  OR (
+                    (
+                      json_extract(t.payload_json, '$.limitRecovery.runId') IS NOT r.run_id
+                      OR json_extract(t.payload_json, '$.limitRecovery.resetAt') IS NOT json_extract(item.payload_json, '$.failure.resetAt')
+                    )
+                    AND (
+                      ${booleanInt(options.autoResume)}
+                      OR (${booleanInt(options.snooze)} AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) > julianday(${DateTime.formatIso(options.now)}))
+                    )
+                    -- A subagent of a settled, archived or deleted parent is abandoned work.
+                    AND NOT EXISTS (
+                      SELECT 1 FROM orchestration_v2_projection_threads parent
+                      WHERE json_extract(t.payload_json, '$.lineage.relationshipToParent') = 'subagent'
+                        AND parent.thread_id = json_extract(t.payload_json, '$.lineage.parentThreadId')
+                        AND (
+                          json_extract(parent.payload_json, '$.settledOverride') = 'settled'
+                          OR json_extract(parent.payload_json, '$.archivedAt') IS NOT NULL
+                          OR parent.deleted_at IS NOT NULL
+                        )
+                    )
+                  )
+                )
+              )
+              -- A model switch continues now, while the limit holds, on a failure from the
+              -- last day (MAX_OVERDUE_ARM_MS), whether or not a resume was armed.
+              OR (
+                ${options.switchTo ?? null} IS NOT NULL
+                AND json_extract(r.payload_json, '$.providerInstanceId') IS NOT ${options.switchTo ?? null}
+                AND julianday(COALESCE(r.completed_at, json_extract(t.payload_json, '$.updatedAt'))) >= julianday(${DateTime.formatIso(options.now)}) - 1
+                AND (
+                  json_extract(item.payload_json, '$.failure.resetAt') IS NULL
+                  OR julianday(json_extract(item.payload_json, '$.failure.resetAt')) > julianday(${DateTime.formatIso(options.now)})
+                )
                 AND (
                   json_extract(t.payload_json, '$.snoozedUntil') IS NULL
                   OR julianday(json_extract(t.payload_json, '$.snoozedUntil')) <= julianday(${DateTime.formatIso(options.now)})
                 )
-              )
-              OR (
-                (
-                  json_extract(t.payload_json, '$.limitRecovery.runId') IS NOT r.run_id
-                  OR json_extract(t.payload_json, '$.limitRecovery.resetAt') IS NOT json_extract(item.payload_json, '$.failure.resetAt')
-                )
-                AND (
-                  ${booleanInt(options.autoResume)}
-                  OR (${booleanInt(options.snooze)} AND julianday(json_extract(item.payload_json, '$.failure.resetAt')) > julianday(${DateTime.formatIso(options.now)}))
-                )
-                -- A subagent of a settled, archived or deleted parent is abandoned work.
                 AND NOT EXISTS (
                   SELECT 1 FROM orchestration_v2_projection_threads parent
                   WHERE json_extract(t.payload_json, '$.lineage.relationshipToParent') = 'subagent'
@@ -4860,6 +4897,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
             pendingRuntimeRequest: null,
             limitRecovery: thread.limitRecovery ?? null,
             snoozedUntil: thread.snoozedUntil ?? null,
+            providerInstanceId: thread.providerInstanceId,
+            latestRunProviderInstanceId: ProviderInstanceId.make(row.run_provider_instance_id),
           });
         }
         return candidates;

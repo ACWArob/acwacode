@@ -8399,6 +8399,8 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
             pendingRuntimeRequest: null,
             limitRecovery: sqlShell.limitRecovery,
             snoozedUntil: sqlShell.snoozedUntil,
+            providerInstanceId: sqlShell.providerInstanceId,
+            latestRunProviderInstanceId: original.providerInstanceId,
           });
         } else assert.isUndefined(candidate);
         assert.isUndefined(candidates.find((row) => row.id === otherThreadId));
@@ -8567,6 +8569,22 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
           (row) => row.id === threadId,
         ),
       );
+      // Switching models alone makes a recent, unsnoozed limit a candidate, unless the
+      // failed run already used the fallback.
+      const switchCandidate = (switchTo: ProviderInstanceId) =>
+        store
+          .getLimitRecoveryCandidates({ ...recoveryOptions, switchTo })
+          .pipe(Effect.map((rows) => rows.find((row) => row.id === threadId)));
+      assert.strictEqual(
+        (yield* switchCandidate(ProviderInstanceId.make("claude")))?.latestRunProviderInstanceId,
+        providerInstanceId,
+      );
+      assert.isUndefined(yield* switchCandidate(providerInstanceId));
+      yield* sql`UPDATE orchestration_v2_projection_threads
+        SET payload_json = json_set(payload_json, '$.snoozedUntil', ${DateTime.formatIso(DateTime.add(now, { minutes: 1 }))})
+        WHERE thread_id = ${threadId}`;
+      assert.isUndefined(yield* switchCandidate(ProviderInstanceId.make("claude")));
+      yield* sql`UPDATE orchestration_v2_projection_threads SET payload_json = ${originalRow!.payload_json} WHERE thread_id = ${threadId}`;
       const reset = DateTime.makeUnsafe(limitItem.failure.resetAt);
       const recovery = {
         runId: original.id,

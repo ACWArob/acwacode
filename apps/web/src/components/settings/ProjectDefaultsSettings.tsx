@@ -531,81 +531,81 @@ export function FallbackModelSettingsRow() {
   const modelDisabledReason = useScopedModelDisabledReason(settings, entries);
 
   return (
-  <SettingsRow
-    serverScoped
-    settingKeys={["fallbackModelSelection"]}
-    mixed={mixedFallback}
-    {...searchableSetting("fallback-model")}
-    description="Used when the default model's provider is out of usage: for new threads, and to continue limited threads when switching is on."
-    resetAction={
-      mixedFallback || settings.fallbackModelSelection !== null ? (
-        <SettingResetButton
-          label="fallback model"
-          onClick={() => updateSettings({ fallbackModelSelection: null })}
-        />
-      ) : null
-    }
-    control={
-      fallbackSelection ? (
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-          <ProviderModelPicker
-            environmentId={representative?.environmentId ?? null}
-            activeInstanceId={fallbackSelection.instanceId}
-            model={fallbackSelection.model}
-            lockedProvider={null}
-            instanceEntries={entries}
-            modelOptionsByInstance={fallbackModelOptions}
-            triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
-            triggerAriaLabel="Fallback model"
-            {...(mixedFallback
-              ? { triggerLabel: "Mixed" }
-              : settings.fallbackModelSelection === null
-                ? { triggerLabel: "None" }
-                : {})}
-            getModelDisabledReason={modelDisabledReason}
-            onInstanceModelChange={(instanceId, model) => {
-              const reason = modelDisabledReason(instanceId, model);
-              if (reason) {
-                toastManager.add({
-                  type: "error",
-                  title: "Fallback model not saved",
-                  description: reason,
-                });
-                return;
-              }
-              updateSettings({
-                fallbackModelSelection: pickModelSelection(
-                  mixedFallback ? null : settings.fallbackModelSelection,
-                  instanceId,
-                  model,
-                ),
-              });
-            }}
+    <SettingsRow
+      serverScoped
+      settingKeys={["fallbackModelSelection"]}
+      mixed={mixedFallback}
+      {...searchableSetting("fallback-model")}
+      description="Used when the default model's provider is out of usage: for new threads, and to continue limited threads when switching is on."
+      resetAction={
+        mixedFallback || settings.fallbackModelSelection !== null ? (
+          <SettingResetButton
+            label="fallback model"
+            onClick={() => updateSettings({ fallbackModelSelection: null })}
           />
-          {settings.fallbackModelSelection !== null && fallbackEntry && !mixedFallback ? (
-            <TraitsPicker
-              provider={fallbackEntry.driverKind}
-              models={fallbackEntry.models}
+        ) : null
+      }
+      control={
+        fallbackSelection ? (
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+            <ProviderModelPicker
+              environmentId={representative?.environmentId ?? null}
+              activeInstanceId={fallbackSelection.instanceId}
               model={fallbackSelection.model}
-              modelOptions={fallbackSelection.options ?? []}
-              allowPromptInjectedEffort={false}
+              lockedProvider={null}
+              instanceEntries={entries}
+              modelOptionsByInstance={fallbackModelOptions}
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
-              onModelOptionsChange={(options) =>
+              triggerAriaLabel="Fallback model"
+              {...(mixedFallback
+                ? { triggerLabel: "Mixed" }
+                : settings.fallbackModelSelection === null
+                  ? { triggerLabel: "None" }
+                  : {})}
+              getModelDisabledReason={modelDisabledReason}
+              onInstanceModelChange={(instanceId, model) => {
+                const reason = modelDisabledReason(instanceId, model);
+                if (reason) {
+                  toastManager.add({
+                    type: "error",
+                    title: "Fallback model not saved",
+                    description: reason,
+                  });
+                  return;
+                }
                 updateSettings({
-                  fallbackModelSelection: createModelSelection(
-                    fallbackSelection.instanceId,
-                    fallbackSelection.model,
-                    options,
+                  fallbackModelSelection: pickModelSelection(
+                    mixedFallback ? null : settings.fallbackModelSelection,
+                    instanceId,
+                    model,
                   ),
-                })
-              }
+                });
+              }}
             />
-          ) : null}
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">No providers available</span>
-      )
-    }
-  />
+            {settings.fallbackModelSelection !== null && fallbackEntry && !mixedFallback ? (
+              <TraitsPicker
+                provider={fallbackEntry.driverKind}
+                models={fallbackEntry.models}
+                model={fallbackSelection.model}
+                modelOptions={fallbackSelection.options ?? []}
+                allowPromptInjectedEffort={false}
+                triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
+                onModelOptionsChange={(options) =>
+                  updateSettings({
+                    fallbackModelSelection: createModelSelection(
+                      fallbackSelection.instanceId,
+                      fallbackSelection.model,
+                      options,
+                    ),
+                  })
+                }
+              />
+            ) : null}
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">No providers available</span>
+        )
+      }
+    />
   );
 }
