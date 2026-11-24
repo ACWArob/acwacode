@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
+import { RunId } from "@t3tools/contracts";
 
 import type { CabinetThreadStatus } from "../sidebar/cabinetStatus.logic";
-import { summarizeDashboardProjects } from "./dashboard.logic";
+import { orderDashboardNowPlaying, summarizeDashboardProjects } from "./dashboard.logic";
 
 const project = (id: string, title: string, extra: { archivedAt?: string } = {}) => ({
   id,
@@ -87,5 +88,53 @@ describe("summarizeDashboardProjects", () => {
     expect(summarize(projects, [], "code/docs").map((summary) => summary.project.id)).toEqual([
       "docs",
     ]);
+  });
+});
+
+describe("orderDashboardNowPlaying", () => {
+  const nowMs = Date.parse("2026-03-01T12:00:00.000Z");
+  const minutesAgo = (minutes: number) => new Date(nowMs - minutes * 60_000).toISOString();
+  const finished = (id: string, minutes: number, status: CabinetThreadStatus = "idle") => ({
+    ...thread(id, "app", minutesAgo(minutes), status),
+    latestUserMessageAt: null,
+    latestRun: {
+      runId: RunId.make(id),
+      status: "completed" as const,
+      requestedAt: null,
+      startedAt: null,
+      completedAt: minutesAgo(minutes),
+      assistantMessageId: null,
+    },
+  });
+  const order = (
+    threads: ReadonlyArray<ReturnType<typeof thread> | ReturnType<typeof finished>>,
+  ) => {
+    const result = orderDashboardNowPlaying({ threads, statusOf: (entry) => entry.status, nowMs });
+    return { current: result.current?.id ?? null, others: result.others.map((entry) => entry.id) };
+  };
+
+  it("leads with a fresh finish, then lists running chats before finished ones, newest first", () => {
+    expect(
+      order([
+        thread("run-old", "app", minutesAgo(30), "working"),
+        finished("done-old", 40),
+        thread("run-new", "app", minutesAgo(5), "working"),
+        finished("needs-you", 3, "waiting"),
+        finished("failed", 20, "failed"),
+      ]),
+    ).toEqual({ current: "needs-you", others: ["run-new", "run-old", "failed", "done-old"] });
+  });
+
+  it("shows the newest running chat when nothing finished in the last few minutes", () => {
+    expect(order([finished("done", 15), thread("run", "app", minutesAgo(50), "working")])).toEqual({
+      current: "run",
+      others: ["done"],
+    });
+  });
+
+  it("drops finishes older than an hour and idle chats that never completed a run", () => {
+    expect(
+      order([finished("stale", 61), thread("empty", "app", minutesAgo(1)), finished("done", 30)]),
+    ).toEqual({ current: "done", others: [] });
   });
 });

@@ -8,6 +8,11 @@ import { normalizeSearchText } from "~/lib/utils";
 import type { CabinetThreadStatus } from "../sidebar/cabinetStatus.logic";
 
 const DASHBOARD_RECENT_THREAD_COUNT = 3;
+/** Finished chats stay in the now-playing strip this long. */
+const NOW_PLAYING_RECENT_MS = 60 * 60 * 1000;
+/** A finish this fresh takes the large card from running chats. */
+const NOW_PLAYING_CURRENT_MS = 10 * 60 * 1000;
+const NOW_PLAYING_LIMIT = 12;
 
 interface DashboardProject {
   readonly id: string;
@@ -106,6 +111,48 @@ export function summarizeDashboardProjects<
         compareIds(left.summary.project.id, right.summary.project.id),
     )
     .map(({ summary }) => summary);
+}
+
+export interface DashboardNowPlaying<T> {
+  readonly current: T | null;
+  readonly others: ReadonlyArray<T>;
+}
+
+/**
+ * The now-playing strip: running chats, then chats that finished in the last hour, newest first.
+ * The large card is the newest finish from the last few minutes, else the newest running chat.
+ * `threads` should already be the listed, top-level ones.
+ */
+export function orderDashboardNowPlaying<T extends DashboardThread>(input: {
+  readonly threads: ReadonlyArray<T>;
+  readonly statusOf: (thread: T) => CabinetThreadStatus;
+  readonly nowMs: number;
+}): DashboardNowPlaying<T> {
+  const running: Array<{ thread: T; ms: number }> = [];
+  const finished: Array<{ thread: T; ms: number }> = [];
+  for (const thread of input.threads) {
+    const status = input.statusOf(thread);
+    const ms = toSortableTimestamp(resolveThreadActivityTimestamp(thread) ?? undefined) ?? 0;
+    if (status === "working") running.push({ thread, ms });
+    // An idle chat that never completed a run has nothing to show.
+    else if (
+      (status !== "idle" || thread.latestRun?.completedAt != null) &&
+      input.nowMs - ms <= NOW_PLAYING_RECENT_MS
+    ) {
+      finished.push({ thread, ms });
+    }
+  }
+  const newestFirst = (left: { thread: T; ms: number }, right: { thread: T; ms: number }) =>
+    right.ms - left.ms || compareIds(left.thread.id, right.thread.id);
+  const finishedNewest = finished.toSorted(newestFirst);
+  const ordered = [...running.toSorted(newestFirst), ...finishedNewest]
+    .slice(0, NOW_PLAYING_LIMIT)
+    .map((entry) => entry.thread);
+  const freshFinish = finishedNewest.find(
+    (entry) => input.nowMs - entry.ms <= NOW_PLAYING_CURRENT_MS,
+  )?.thread;
+  const current = freshFinish ?? ordered[0] ?? null;
+  return { current, others: ordered.filter((thread) => thread !== current) };
 }
 
 function compareIds(left: string, right: string) {

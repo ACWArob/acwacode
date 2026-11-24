@@ -46,6 +46,12 @@ The dashboard shows every project at once. Open it with the grid button in the t
 you, when the project was last active, and its three latest chats, with **New chat** to start
 another. Projects with work in progress come first, and the search box filters by name or folder.
 
+Above the projects, a now-playing strip shows the chat that just finished (or one still running)
+in a large card, next to a row of other running chats and chats that finished in the last hour.
+Turn on **Follow finished tasks** in the dashboard header or the command palette, and acwa desk
+opens each chat as it finishes, on this device only. It waits while you are typing and switches
+at most once every few seconds.
+
 ## Full force
 
 In full force, Claude Opus leads: it splits the work and hands parts to other agents in

@@ -61,6 +61,7 @@ import {
   ChartNoAxesColumnIcon,
   CheckIcon,
   ChevronRightIcon,
+  CirclePlayIcon,
   CornerLeftUpIcon,
   FileSearchIcon,
   FileTextIcon,
@@ -113,6 +114,7 @@ import {
   promptLinkRepositoryOf,
 } from "./promptLinks/copyPromptLink";
 import { useClientSettings } from "../hooks/useSettings";
+import { useFollowFinishedTasks } from "../cabinet/dashboard/followFinishedTasks";
 import { useStableCallback } from "../hooks/useStableCallback";
 import { readLocalApi } from "../localApi";
 import { configuredHostedAppUrl } from "../hostedPairing";
@@ -468,6 +470,7 @@ function OpenCommandPaletteDialog(props: {
 }) {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
+  const [followFinishedTasks, setFollowFinishedTasks] = useFollowFinishedTasks();
   const { openChildSearch, setOpen } = props;
   // Keyed by palette session: the intent and restored search only seed this
   // mount, and closing must not change what the closing palette shows.
@@ -1791,6 +1794,18 @@ function OpenCommandPaletteDialog(props: {
     icon: <LayoutGridIcon className={ITEM_ICON_CLASS} />,
     run: async () => {
       await navigate({ to: "/dashboard" });
+    },
+  });
+
+  actionItems.push({
+    kind: "action",
+    value: "action:follow-finished-tasks",
+    searchTerms: ["follow", "finished", "tasks", "auto", "now playing", "switch", "dashboard"],
+    title: "Follow finished tasks",
+    description: followFinishedTasks ? "On. Select to turn off" : "Off. Select to turn on",
+    icon: <CirclePlayIcon className={ITEM_ICON_CLASS} />,
+    run: async () => {
+      setFollowFinishedTasks(!followFinishedTasks);
     },
   });
 
