@@ -40,7 +40,7 @@ export function trackSilence(
 
 // Keep topic words (code, search, …) out of these hints: autoRoute reads the whole draft.
 export const VOICE_CALL_HINT =
-  "(Voice call: answer in a few short spoken sentences. Put anything long in the chat, not in the spoken part. When the caller gives jobs to more than one agent by name, Claude leads: hand each job to the agent named with delegate_task (Gemini is the antigravity provider, ChatGPT is codex) so they work at once, say in a sentence who is on what, and report back aloud as each one finishes.)";
+  "(Voice call: answer in a few short spoken sentences. Put anything long in the chat, not in the spoken part. If the caller gives you a job by name, say in a sentence that you're on it, then do it.)";
 
 export const VOICE_TEAM_HINT =
   "(Voice call, team: work this out together in the chat in writing, like a team. Claude leads as the project manager and speaks last. Only Claude's reply is read aloud, so Claude ends with a few short spoken sentences: the plan and who does what.)";

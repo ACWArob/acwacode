@@ -5,6 +5,7 @@ import { VOICE_CALL_HINT } from "~/speech/voiceCall.logic";
 
 import {
   autoRoute,
+  namedAgentSelections,
   claudeLast,
   foldGroupTurns,
   GROUP_TURN_TEXT,
@@ -106,9 +107,17 @@ describe("autoRoute", () => {
     ["hey chatgpt how would you name it", "gpt-6.2-sol"],
     ["ok so ask Claude to fix the bug", "claude-opus-5-5"],
     ["compare gemini pricing plans", "antigravity-default"],
-    ["Gemini, look into grippers. ChatGPT, fix the parser.", "claude-opus-5-5"],
   ])("%s → %s", (prompt, topic) => {
     expect(pick(prompt).topic).toBe(topic);
+  });
+
+  it("turns jobs for several named agents into a group chat", () => {
+    expect(
+      namedAgentSelections("Gemini, look into grippers. ChatGPT, fix the parser.", entries).map(
+        (selection) => selection.model,
+      ),
+    ).toEqual(["antigravity-default", "gpt-6.2-sol"]);
+    expect(namedAgentSelections("Gemini, what do you think?", entries)).toEqual([]);
   });
 
   it("sends everything else to Opus", () => {

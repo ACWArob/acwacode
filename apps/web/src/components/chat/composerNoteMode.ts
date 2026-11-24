@@ -34,7 +34,7 @@ export const useComposerAgentPickStore = create<{
 
 /** What each later agent in an @all group is sent; the request itself reaches it through the handoff. */
 export const GROUP_TURN_TEXT =
-  "↳ Your turn in the group: answer the message above, building on the earlier answers.";
+  "↳ Your turn in the group: do the part of the message above meant for you, if any, and answer building on the earlier replies.";
 
 /** Folds the short group-turn messages into the message they follow, so the queue shows it once. */
 export function foldGroupTurns<T extends { readonly text: string }>(
@@ -160,6 +160,21 @@ const pickModel = (entries: ReadonlyArray<RouteEntry>, driver: string, model: Re
   return entry && slug ? { instanceId: entry.instanceId, model: slug.slug } : null;
 };
 
+/**
+ * A message that gives jobs to several agents by name ("Gemini, look into X. ChatGPT, fix Y.")
+ * becomes a group chat: each named agent answers in turn in this chat.
+ */
+export function namedAgentSelections(
+  prompt: string,
+  entries: ReadonlyArray<RouteEntry>,
+): ReadonlyArray<ModelSelection> {
+  const selections = NAMED_AGENTS.filter((agent) => agent.names.test(prompt)).flatMap((agent) => {
+    const selection = pickModel(entries, agent.driver, agent.model);
+    return selection ? [selection] : [];
+  });
+  return selections.length > 1 ? selections : [];
+}
+
 /** Picks an agent from what the message says, so the user doesn't have to @ one each time. */
 export function autoRoute(
   prompt: string,
@@ -167,14 +182,11 @@ export function autoRoute(
   fallback: ModelSelection,
 ): AutoRoute {
   let topic: AutoRoute["topic"] = null;
-  const named = NAMED_AGENTS.filter((agent) => agent.names.test(prompt));
-  // Jobs for several agents go to Claude, who hands each one out and keeps track.
-  const lead = named.length > 1 ? NAMED_AGENTS[0] : named[0];
-  const leadSelection = lead ? pickModel(entries, lead.driver, lead.model) : null;
-  if (lead && leadSelection) {
-    const reason = named.length > 1 ? "assigning work" : `asked for ${lead.label}`;
+  const named = NAMED_AGENTS.find((agent) => agent.names.test(prompt));
+  const namedSelection = named ? pickModel(entries, named.driver, named.model) : null;
+  if (named && namedSelection) {
     return {
-      topic: { reason, selection: leadSelection },
+      topic: { reason: `asked for ${named.label}`, selection: namedSelection },
       general: generalRoute(entries, fallback),
     };
   }

@@ -1,5 +1,5 @@
 import { isClearComposerCommand, parseSideChatCommand } from "@t3tools/shared/composerTrigger";
-import { claudeLast, GROUP_TURN_TEXT } from "./composerNoteMode";
+import { claudeLast, GROUP_TURN_TEXT, namedAgentSelections } from "./composerNoteMode";
 import { armFreshSession, disarmFreshSession, readFreshSessionArm } from "./freshSessionArms";
 import {
   mergeDirectPreviewAnnotation,
@@ -875,17 +875,31 @@ export function useComposerSend(input: ComposerSendInput) {
         : null;
     // Several @mentions (or @all): the first agent runs now, the rest queue behind it on this
     // thread and see the earlier answers through the provider handoff.
-    const mentionedTargets =
+    const isClaudeSelection = (selection: ModelSelection) =>
+      providerInstanceEntries.some(
+        (entry) => entry.instanceId === selection.instanceId && entry.driverKind === "claudeAgent",
+      );
+    const atMentionTargets =
       routingInput === null
         ? []
-        : claudeLast(
-            resolvePromptProviderTargets(routingInput).filter((target) => target.switchedByMention),
-            (selection) =>
-              providerInstanceEntries.some(
-                (entry) =>
-                  entry.instanceId === selection.instanceId && entry.driverKind === "claudeAgent",
-              ),
+        : resolvePromptProviderTargets(routingInput).filter((target) => target.switchedByMention);
+    // Naming jobs for several agents in plain words works like @mentioning each of them.
+    const namedTargets =
+      routingInput === null || atMentionTargets.length > 0
+        ? []
+        : namedAgentSelections(messageTextForSend, routingInput.instanceEntries).map(
+            (modelSelection) => ({
+              modelSelection,
+              switchedByMention: true,
+              matchedHandle: null,
+              matchedModelLabel: null,
+              matchedTargetLabel: null,
+            }),
           );
+    const mentionedTargets = claudeLast(
+      atMentionTargets.length > 0 ? atMentionTargets : namedTargets,
+      isClaudeSelection,
+    );
     const promptProviderRouting =
       routingInput === null
         ? null
