@@ -32,6 +32,9 @@ export const useComposerAgentPickStore = create<{
     }),
 }));
 
+export const TEAM_HINT =
+  "(Team: this is a task. Each agent gives its view from its role: Codex as engineer, Gemini as researcher, others as reviewers. Claude speaks last as the lead, writes the agreed next steps with an owner and skill for each, and starts them.)";
+
 export const COUNCIL_HINT =
   "(Council: answer in turn and respond to the earlier answers. Claude speaks last and sums up what the group decided.)";
 

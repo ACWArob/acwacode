@@ -23,9 +23,18 @@ message that matches both topics goes to Codex. A topic only routes to an agent 
 and available; otherwise the message falls through to the next rule. Code and research go to that
 agent's default model.
 
-The composer shows **Replying to** and the agent before you send, so you can check the pick.
-To choose yourself, `@` an agent or a model: an `@mention` always wins, and `@claude @codex` or
-`@all` asks several agents in turn.
+The composer shows **Replying to** and the agent before you send. Click it to choose:
+
+- **Auto** routes each message as described above.
+- **A model** keeps the channel on that model, even for code or research, until you pick another.
+- **Everyone** asks every agent in turn. Each one sees the earlier answers, and Claude speaks last
+  and sums up what the group decided.
+- **Team** is for tasks: each agent weighs in from its role (Codex as engineer, Gemini as
+  researcher), then Claude, as the lead, writes the next steps with an owner for each and starts
+  them. This needs the Team rule in your full force section below.
+
+An `@mention` in the message always wins, and `@claude @codex` or `@all` asks several agents in
+turn.
 
 Press **Note** next to send to post messages to the channel without running any agent. Press it
 again to go back to agents. Note mode lasts until you reload.
@@ -59,6 +68,27 @@ doing everything yourself:
 ```
 
 Then ask Opus for "full force" in any channel.
+
+### Skills
+
+Agents work better with skills, folders of instructions they load when a task matches. acwa desk
+agents read them from `~/.claude/skills` (Claude), `~/.agents/skills` (Codex and Gemini CLI) and
+`~/.gemini/antigravity-cli/skills` (Antigravity). A good starting set for coding is
+[Superpowers](https://github.com/obra/superpowers): `systematic-debugging`,
+`test-driven-development`, `verification-before-completion`, `requesting-code-review`,
+`receiving-code-review` and `writing-plans`. Copy each skill's folder into those directories.
+
+Add lines to your full force section so the lead names the right skill in each delegated task,
+and a Team rule for the Team option:
+
+```markdown
+- Name the matching skill in every delegated task: bugs use systematic-debugging, new code uses
+  test-driven-development, reviews use requesting-code-review, and nothing is "done" before
+  verification-before-completion.
+- Team mode: when a message starts with "(Team:", each agent gives its view from its role first.
+  You speak last as the lead: write numbered next steps, each with an owner and a skill, then
+  start them with `delegate_task`.
+```
 
 ## Open models through OpenCode
 

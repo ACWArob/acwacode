@@ -1,5 +1,5 @@
 import type { ModelSelection, ProviderInstanceId } from "@t3tools/contracts";
-import { CheckIcon, ShuffleIcon, UsersIcon } from "lucide-react";
+import { CheckIcon, ListChecksIcon, ShuffleIcon, UsersIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { AppModelOption } from "../../modelSelection";
@@ -25,6 +25,7 @@ export function ComposerAgentPicker(props: {
   readonly pick: ModelSelection | null;
   readonly onPick: (pick: ModelSelection | null) => void;
   readonly onEveryone: () => void;
+  readonly onTeam: () => void;
 }) {
   const agents = props.entries
     .filter((entry) => entry.isAvailable)
@@ -58,6 +59,10 @@ export function ComposerAgentPicker(props: {
         <MenuItem onClick={props.onEveryone}>
           <UsersIcon />
           <span className="flex-1">Everyone (they discuss, Claude sums up)</span>
+        </MenuItem>
+        <MenuItem onClick={props.onTeam}>
+          <ListChecksIcon />
+          <span className="flex-1">Team (plan the task, split the work, start it)</span>
         </MenuItem>
         {agents.map((agent) => (
           <MenuGroup key={agent.entry.instanceId}>

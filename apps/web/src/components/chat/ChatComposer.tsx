@@ -242,6 +242,7 @@ import {
   autoRoute,
   COUNCIL_HINT,
   resolveLastAgentSelection,
+  TEAM_HINT,
   useComposerAgentPickStore,
   useComposerNoteModeStore,
 } from "./composerNoteMode";
@@ -1996,11 +1997,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     };
   };
   const readComposerSnapshotStable = useStableCallback(readComposerSnapshot);
-  // Everyone answers in turn and Claude, last, sums up; the hint tells them so.
-  const startCouncilDraft = () => {
+  // Everyone answers in turn and Claude, last, sums up (council) or plans and splits the work (team).
+  const startGroupDraft = (hint: string) => {
     const snapshot = readComposerSnapshot();
-    const body = snapshot.value.replace(/^@all\s*/, "").replace(`\n\n${COUNCIL_HINT}`, "");
-    applyPromptReplacement(0, snapshot.value.length, `@all ${body}\n\n${COUNCIL_HINT}`, {
+    let body = snapshot.value.replace(/^@all\s*/, "");
+    for (const known of [COUNCIL_HINT, TEAM_HINT]) body = body.replace(`\n\n${known}`, "");
+    applyPromptReplacement(0, snapshot.value.length, `@all ${body}\n\n${hint}`, {
       expectedText: snapshot.value,
       focusEditorAfterReplace: true,
     });
@@ -2749,7 +2751,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       noteToggleVisible={multipleModelSelections === null}
       agentPick={agentPick}
       onPickAgent={(pick) => setAgentPick(noteThreadKey, pick)}
-      onPickEveryone={startCouncilDraft}
+      onPickEveryone={() => startGroupDraft(COUNCIL_HINT)}
+      onPickTeam={() => startGroupDraft(TEAM_HINT)}
       onToggleNoteMode={() => toggleNoteMode(noteThreadKey)}
     />
   );

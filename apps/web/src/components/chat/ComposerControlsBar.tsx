@@ -114,6 +114,7 @@ export function ComposerControlsBar(props: {
   agentPick: ModelSelection | null;
   onPickAgent: (pick: ModelSelection | null) => void;
   onPickEveryone: () => void;
+  onPickTeam: () => void;
 }) {
   const {
     environmentId,
@@ -168,6 +169,7 @@ export function ComposerControlsBar(props: {
     agentPick,
     onPickAgent,
     onPickEveryone,
+    onPickTeam,
   } = props;
   const accessMatchesDefault = compatibleRuntimeMode === defaultRuntimeMode;
   const {
@@ -359,6 +361,7 @@ export function ComposerControlsBar(props: {
         pick={agentPick}
         onPick={onPickAgent}
         onEveryone={onPickEveryone}
+        onTeam={onPickTeam}
       >
         {routingStatus}
       </ComposerAgentPicker>
