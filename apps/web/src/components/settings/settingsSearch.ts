@@ -509,6 +509,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["usage quota rate limit reset recover continue"],
   },
   {
+    id: "switch-model-on-usage-limit",
+    title: "Switch to a backup model when a usage limit is hit",
+    to: "/settings/threads",
+    searchTerms: ["usage quota rate limit fallback backup model provider switch continue"],
+  },
+  {
     id: "working-shelf",
     title: msg("Working section"),
     to: "/settings/general",

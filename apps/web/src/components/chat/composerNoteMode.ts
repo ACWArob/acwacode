@@ -117,7 +117,8 @@ const TOPIC_ROUTES: ReadonlyArray<{
   {
     reason: "code",
     driver: "codex",
-    model: null,
+    // A lighter model than Codex's default, so a $20 ChatGPT plan lasts.
+    model: /\bsol\b/i,
     matches: (prompt) =>
       prompt.includes("```") ||
       /\b(code|bug|fix|error|refactor|implement|function|tests?|compile|build|deploy|repo|commit|script|typescript|python)\b/i.test(

@@ -60,7 +60,7 @@ import {
 import { useScopedModelDisabledReason } from "./useScopedModelAvailability";
 import { useOptionalSettingsScope, useSettingsScope } from "./SettingsScopeContext";
 import { scopedIdleCompaction } from "./scopedSettings";
-import { ProjectDefaultsSettings } from "./ProjectDefaultsSettings";
+import { FallbackModelSettingsRow, ProjectDefaultsSettings } from "./ProjectDefaultsSettings";
 import { ThreadTitleInstructionsSettings } from "./ThreadTitleInstructionsSettings";
 import { SnoozePresetsRow } from "./SnoozePresetsSettings";
 import { useDesktopUpdateState } from "../../state/desktopUpdate";
@@ -512,6 +512,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.snoozeLimitedThreads !== DEFAULT_UNIFIED_SETTINGS.snoozeLimitedThreads
       ? ["Snooze until limits reset"]
       : []),
+    ...(settings.switchModelOnUsageLimit !== DEFAULT_UNIFIED_SETTINGS.switchModelOnUsageLimit
+      ? ["Switch to a backup model when a usage limit is hit"]
+      : []),
     ...(!Equal.equals(settings.snoozePresets, DEFAULT_UNIFIED_SETTINGS.snoozePresets)
       ? ["Snooze options"]
       : []),
@@ -682,6 +685,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       sidebarAutoSettleOnMerge: DEFAULT_UNIFIED_SETTINGS.sidebarAutoSettleOnMerge,
       autoResumeLimitedThreads: DEFAULT_UNIFIED_SETTINGS.autoResumeLimitedThreads,
       snoozeLimitedThreads: DEFAULT_UNIFIED_SETTINGS.snoozeLimitedThreads,
+      switchModelOnUsageLimit: DEFAULT_UNIFIED_SETTINGS.switchModelOnUsageLimit,
       snoozePresets: DEFAULT_UNIFIED_SETTINGS.snoozePresets,
       responseStreamingMode: DEFAULT_UNIFIED_SETTINGS.responseStreamingMode,
       enableProviderUpdateChecks: DEFAULT_UNIFIED_SETTINGS.enableProviderUpdateChecks,
@@ -1879,6 +1883,23 @@ export function ThreadsSettingsPanel() {
             />
           }
         />
+        <SettingsRow
+          serverScoped
+          {...searchableSetting("switch-model-on-usage-limit")}
+          description="Continue a limited thread right away on the fallback model instead of waiting for the reset."
+          settingKeys={["switchModelOnUsageLimit"]}
+          control={
+            <ScopedSwitch
+              settingKeys={["switchModelOnUsageLimit"]}
+              checked={settings.switchModelOnUsageLimit}
+              onCheckedChange={(checked) =>
+                updateSettings({ switchModelOnUsageLimit: Boolean(checked) })
+              }
+              aria-label="Switch to a backup model when a usage limit is hit"
+            />
+          }
+        />
+        {!isProjectScope ? <FallbackModelSettingsRow /> : null}
       </SettingsSection>
 
       {hasServerTargets ? (

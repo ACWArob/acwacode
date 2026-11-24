@@ -83,7 +83,7 @@ describe("autoRoute", () => {
       "claude-sonnet-5-5",
       "claude-haiku-5-5",
     ]),
-    entry("codex", "codex", ["gpt-5.5"]),
+    entry("codex", "codex", ["gpt-6-astra", "gpt-6.2-sol"]),
     entry("antigravity", "antigravity", ["antigravity-default"]),
     entry("opencode", "acpRegistry", [
       "openrouter/qwen/qwen3",
@@ -96,7 +96,7 @@ describe("autoRoute", () => {
   };
 
   it.each([
-    ["fix the failing test in the parser", "gpt-5.5"],
+    ["fix the failing test in the parser", "gpt-6.2-sol"],
     ["what's the latest news on humanoid robots", "antigravity-default"],
     ["scrape the prices off this website", null],
     ["help me plan the semester project", null],

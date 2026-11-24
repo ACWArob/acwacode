@@ -89,15 +89,6 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   const automaticModel =
     targets.length > 0 &&
     targets.every((candidate) => candidate.settings.defaultModelSelection === null);
-  const mixedFallback = useScopedSettingsMixed(["fallbackModelSelection"]);
-  const fallbackSelection = settings.fallbackModelSelection ?? selection;
-  const fallbackEntry = entries.find((entry) => entry.instanceId === fallbackSelection?.instanceId);
-  const fallbackModelOptions = getCustomModelOptionsByInstance(
-    settings,
-    providers,
-    fallbackSelection?.instanceId,
-    fallbackSelection?.model,
-  );
   const mixedPermissions = useScopedSettingsMixed(["defaultRuntimeMode"]);
   const PermissionIcon = runtimeModeConfig[settings.defaultRuntimeMode].icon;
   const mixedWorkspace = useScopedSettingsMixed(["defaultThreadEnvMode"]);
@@ -245,84 +236,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
     />
   );
 
-  const fallbackRow = !isProjectScope ? (
-    <SettingsRow
-      serverScoped
-      settingKeys={["fallbackModelSelection"]}
-      mixed={mixedFallback}
-      {...searchableSetting("fallback-model")}
-      description="Used for new threads when the default model's provider is out of usage."
-      resetAction={
-        mixedFallback || settings.fallbackModelSelection !== null ? (
-          <SettingResetButton
-            label="fallback model"
-            onClick={() => updateSettings({ fallbackModelSelection: null })}
-          />
-        ) : null
-      }
-      control={
-        fallbackSelection ? (
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-            <ProviderModelPicker
-              environmentId={representative?.environmentId ?? null}
-              activeInstanceId={fallbackSelection.instanceId}
-              model={fallbackSelection.model}
-              lockedProvider={null}
-              instanceEntries={entries}
-              modelOptionsByInstance={fallbackModelOptions}
-              triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
-              triggerAriaLabel="Fallback model"
-              {...(mixedFallback
-                ? { triggerLabel: "Mixed" }
-                : settings.fallbackModelSelection === null
-                  ? { triggerLabel: "None" }
-                  : {})}
-              getModelDisabledReason={modelDisabledReason}
-              onInstanceModelChange={(instanceId, model) => {
-                const reason = modelDisabledReason(instanceId, model);
-                if (reason) {
-                  toastManager.add({
-                    type: "error",
-                    title: "Fallback model not saved",
-                    description: reason,
-                  });
-                  return;
-                }
-                updateSettings({
-                  fallbackModelSelection: pickModelSelection(
-                    mixedFallback ? null : settings.fallbackModelSelection,
-                    instanceId,
-                    model,
-                  ),
-                });
-              }}
-            />
-            {settings.fallbackModelSelection !== null && fallbackEntry && !mixedFallback ? (
-              <TraitsPicker
-                provider={fallbackEntry.driverKind}
-                models={fallbackEntry.models}
-                model={fallbackSelection.model}
-                modelOptions={fallbackSelection.options ?? []}
-                allowPromptInjectedEffort={false}
-                triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
-                onModelOptionsChange={(options) =>
-                  updateSettings({
-                    fallbackModelSelection: createModelSelection(
-                      fallbackSelection.instanceId,
-                      fallbackSelection.model,
-                      options,
-                    ),
-                  })
-                }
-              />
-            ) : null}
-          </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">No providers available</span>
-        )
-      }
-    />
-  ) : null;
+  const fallbackRow = !isProjectScope ? <FallbackModelSettingsRow /> : null;
 
   return (
     <SettingsSection
@@ -338,7 +252,6 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       ) : category === "general" ? (
         <>
           {modelRow}
-          {fallbackRow}
           <SettingsRow
             serverScoped
             settingKeys={["defaultRuntimeMode"]}
@@ -582,5 +495,117 @@ export function WorktreeSubmodulesRow() {
         </Select>
       }
     />
+  );
+}
+
+/** The backup model for new threads and for switching limited threads; environment-wide only. */
+export function FallbackModelSettingsRow() {
+  const { target } = useSettingsScope();
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  const { environments } = useEnvironments();
+  const providersByEnvironment = useEnvironmentProviders();
+  const representative = target
+    ? environments.find((environment) => environment.environmentId === target.environmentId)
+    : undefined;
+  const providers =
+    (representative?.serverConfig
+      ? providersByEnvironment.get(representative.environmentId)
+      : undefined) ?? EMPTY_SERVER_PROVIDERS;
+  const entries = providerInstanceEntriesFor(providers, settings, target?.projectId ?? null);
+  const defaultSelection = resolveDefaultModelSettingsPresentation({
+    entries,
+    providers,
+    settings,
+    projectId: target?.projectId ?? null,
+  }).selection;
+  const mixedFallback = useScopedSettingsMixed(["fallbackModelSelection"]);
+  const fallbackSelection = settings.fallbackModelSelection ?? defaultSelection;
+  const fallbackEntry = entries.find((entry) => entry.instanceId === fallbackSelection?.instanceId);
+  const fallbackModelOptions = getCustomModelOptionsByInstance(
+    settings,
+    providers,
+    fallbackSelection?.instanceId,
+    fallbackSelection?.model,
+  );
+  const modelDisabledReason = useScopedModelDisabledReason(settings, entries);
+
+  return (
+  <SettingsRow
+    serverScoped
+    settingKeys={["fallbackModelSelection"]}
+    mixed={mixedFallback}
+    {...searchableSetting("fallback-model")}
+    description="Used when the default model's provider is out of usage: for new threads, and to continue limited threads when switching is on."
+    resetAction={
+      mixedFallback || settings.fallbackModelSelection !== null ? (
+        <SettingResetButton
+          label="fallback model"
+          onClick={() => updateSettings({ fallbackModelSelection: null })}
+        />
+      ) : null
+    }
+    control={
+      fallbackSelection ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+          <ProviderModelPicker
+            environmentId={representative?.environmentId ?? null}
+            activeInstanceId={fallbackSelection.instanceId}
+            model={fallbackSelection.model}
+            lockedProvider={null}
+            instanceEntries={entries}
+            modelOptionsByInstance={fallbackModelOptions}
+            triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
+            triggerAriaLabel="Fallback model"
+            {...(mixedFallback
+              ? { triggerLabel: "Mixed" }
+              : settings.fallbackModelSelection === null
+                ? { triggerLabel: "None" }
+                : {})}
+            getModelDisabledReason={modelDisabledReason}
+            onInstanceModelChange={(instanceId, model) => {
+              const reason = modelDisabledReason(instanceId, model);
+              if (reason) {
+                toastManager.add({
+                  type: "error",
+                  title: "Fallback model not saved",
+                  description: reason,
+                });
+                return;
+              }
+              updateSettings({
+                fallbackModelSelection: pickModelSelection(
+                  mixedFallback ? null : settings.fallbackModelSelection,
+                  instanceId,
+                  model,
+                ),
+              });
+            }}
+          />
+          {settings.fallbackModelSelection !== null && fallbackEntry && !mixedFallback ? (
+            <TraitsPicker
+              provider={fallbackEntry.driverKind}
+              models={fallbackEntry.models}
+              model={fallbackSelection.model}
+              modelOptions={fallbackSelection.options ?? []}
+              allowPromptInjectedEffort={false}
+              triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
+              onModelOptionsChange={(options) =>
+                updateSettings({
+                  fallbackModelSelection: createModelSelection(
+                    fallbackSelection.instanceId,
+                    fallbackSelection.model,
+                    options,
+                  ),
+                })
+              }
+            />
+          ) : null}
+        </div>
+      ) : (
+        <span className="text-sm text-muted-foreground">No providers available</span>
+      )
+    }
+  />
   );
 }
