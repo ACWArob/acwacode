@@ -1,4 +1,5 @@
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { foldGroupTurns } from "./composerNoteMode";
 import { deriveThreadQueueWorkflowState } from "@t3tools/client-runtime/state/thread-workflows";
 import { assistantCitationsToPlainText } from "@t3tools/shared/assistantCitations";
 import {
@@ -125,7 +126,7 @@ export function QueuedRunsControl({
   const optimisticQueued = props.optimisticMessages.filter(
     (message) => message.inputIntent === "queued_turn" && !acknowledgedMessageIds.has(message.id),
   );
-  const items = [
+  const items = foldGroupTurns([
     ...queued.map(({ run, text, attachments, context, message }, serverIndex) => ({
       key: run.id,
       message,
@@ -160,7 +161,7 @@ export function QueuedRunsControl({
       thumbnails: (message.attachments ?? []).filter(isImageAttachment),
       pending: true,
     })),
-  ];
+  ]);
 
   const sendQueuedMessage = async (queuedRunId: RunId) => {
     const freshContext = queued.some(
@@ -364,6 +365,11 @@ export function QueuedRunsControl({
                   </>
                 )}
               </QueuedMessage>
+              {item.followers > 0 ? (
+                <p className="me-1 text-2xs text-muted-foreground">
+                  Then {item.followers} more agent{item.followers === 1 ? "" : "s"} answer in turn
+                </p>
+              ) : null}
             </li>
           );
         })}

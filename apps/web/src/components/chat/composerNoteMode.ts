@@ -32,6 +32,23 @@ export const useComposerAgentPickStore = create<{
     }),
 }));
 
+/** What each later agent in an @all group is sent; the request itself reaches it through the handoff. */
+export const GROUP_TURN_TEXT =
+  "↳ Your turn in the group: answer the message above, building on the earlier answers.";
+
+/** Folds the short group-turn messages into the message they follow, so the queue shows it once. */
+export function foldGroupTurns<T extends { readonly text: string }>(
+  items: ReadonlyArray<T>,
+): ReadonlyArray<T & { readonly followers: number }> {
+  const folded: Array<T & { followers: number }> = [];
+  for (const item of items) {
+    const previous = folded.at(-1);
+    if (item.text === GROUP_TURN_TEXT && previous) previous.followers += 1;
+    else folded.push({ ...item, followers: 0 });
+  }
+  return folded;
+}
+
 export const TEAM_HINT =
   "(Team: this is a task. Each agent gives its view from its role: Codex as engineer, Gemini as researcher, others as reviewers. Claude speaks last as the lead, writes the agreed next steps with an owner and skill for each, and starts them.)";
 

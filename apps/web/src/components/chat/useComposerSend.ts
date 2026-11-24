@@ -1,5 +1,5 @@
 import { isClearComposerCommand, parseSideChatCommand } from "@t3tools/shared/composerTrigger";
-import { claudeLast } from "./composerNoteMode";
+import { claudeLast, GROUP_TURN_TEXT } from "./composerNoteMode";
 import { armFreshSession, disarmFreshSession, readFreshSessionArm } from "./freshSessionArms";
 import {
   mergeDirectPreviewAnnotation,
@@ -1576,7 +1576,7 @@ export function useComposerSend(input: ComposerSendInput) {
                   messageId: newMessageId(),
                   role: "user",
                   attachments: [],
-                  text: outgoingMessageText,
+                  text: GROUP_TURN_TEXT,
                 },
                 modelSelection,
                 runtimeMode,

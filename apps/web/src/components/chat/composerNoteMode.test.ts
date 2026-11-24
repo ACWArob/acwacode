@@ -6,6 +6,8 @@ import { VOICE_CALL_HINT } from "~/speech/voiceCall.logic";
 import {
   autoRoute,
   claudeLast,
+  foldGroupTurns,
+  GROUP_TURN_TEXT,
   resolveLastAgentSelection,
   type AutoRoute,
 } from "./composerNoteMode";
@@ -121,5 +123,24 @@ describe("claudeLast", () => {
       (selection) => selection.instanceId === claude.instanceId,
     ).map((target) => target.modelSelection.instanceId);
     expect(order).toEqual(["codex", "antigravity", "claudeAgent"]);
+  });
+});
+
+describe("foldGroupTurns", () => {
+  it("shows a group message once, counting the agents queued behind it", () => {
+    const folded = foldGroupTurns([
+      { text: "@all plan it" },
+      { text: GROUP_TURN_TEXT },
+      { text: GROUP_TURN_TEXT },
+      { text: "something else" },
+    ]);
+    expect(folded.map((item) => [item.text, item.followers])).toEqual([
+      ["@all plan it", 2],
+      ["something else", 0],
+    ]);
+  });
+
+  it("keeps a group turn whose first message already ran", () => {
+    expect(foldGroupTurns([{ text: GROUP_TURN_TEXT }]).map((item) => item.followers)).toEqual([0]);
   });
 });
