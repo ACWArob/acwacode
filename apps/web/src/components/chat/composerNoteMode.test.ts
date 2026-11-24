@@ -5,7 +5,7 @@ import { VOICE_CALL_HINT } from "~/speech/voiceCall.logic";
 
 import {
   autoRoute,
-  namedAgentSelections,
+  namedDispatch,
   claudeLast,
   foldGroupTurns,
   GROUP_TURN_TEXT,
@@ -111,13 +111,12 @@ describe("autoRoute", () => {
     expect(pick(prompt).topic).toBe(topic);
   });
 
-  it("turns jobs for several named agents into a group chat", () => {
-    expect(
-      namedAgentSelections("Gemini, look into grippers. ChatGPT, fix the parser.", entries).map(
-        (selection) => selection.model,
-      ),
-    ).toEqual(["antigravity-default", "gpt-6.2-sol"]);
-    expect(namedAgentSelections("Gemini, what do you think?", entries)).toEqual([]);
+  it("sends jobs for several named agents to Claude to run at the same time", () => {
+    const dispatch = namedDispatch("Gemini, look into grippers. ChatGPT, fix the parser.", entries);
+    expect(dispatch?.lead.model).toBe("claude-opus-5-5");
+    expect(dispatch?.hint).toContain('Gemini {providerInstanceId:"antigravity"');
+    expect(dispatch?.hint).toContain('ChatGPT {providerInstanceId:"codex", model:"gpt-6.2-sol"}');
+    expect(namedDispatch("Gemini, what do you think?", entries)).toBeNull();
   });
 
   it("sends everything else to Opus", () => {

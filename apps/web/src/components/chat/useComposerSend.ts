@@ -1,5 +1,5 @@
 import { isClearComposerCommand, parseSideChatCommand } from "@t3tools/shared/composerTrigger";
-import { claudeLast, GROUP_TURN_TEXT, namedAgentSelections } from "./composerNoteMode";
+import { claudeLast, GROUP_TURN_TEXT, namedDispatch } from "./composerNoteMode";
 import { armFreshSession, disarmFreshSession, readFreshSessionArm } from "./freshSessionArms";
 import {
   mergeDirectPreviewAnnotation,
@@ -859,12 +859,12 @@ export function useComposerSend(input: ComposerSendInput) {
       environmentContexts: composerEnvironmentContextsSnapshot,
       cabinetQuotes: composerCabinetQuotesSnapshot,
       cabinetItems: composerCabinetItemsSnapshot,
-      messageText: messageTextForSend,
+      messageText: typedMessageText,
     } = sendSnapshot;
     const routingInput =
       multipleModelSelections === null && sendCtx.modelOptionsByInstance
         ? {
-            prompt: messageTextForSend,
+            prompt: typedMessageText,
             instanceEntries: sendCtx.routableProviderInstanceEntries ?? providerInstanceEntries,
             modelOptionsByInstance: sendCtx.modelOptionsByInstance,
             currentChannelModelSelection: ctxSelectedModelSelection,
@@ -875,37 +875,36 @@ export function useComposerSend(input: ComposerSendInput) {
         : null;
     // Several @mentions (or @all): the first agent runs now, the rest queue behind it on this
     // thread and see the earlier answers through the provider handoff.
-    const isClaudeSelection = (selection: ModelSelection) =>
-      providerInstanceEntries.some(
-        (entry) => entry.instanceId === selection.instanceId && entry.driverKind === "claudeAgent",
-      );
     const atMentionTargets =
       routingInput === null
         ? []
         : resolvePromptProviderTargets(routingInput).filter((target) => target.switchedByMention);
-    // Naming jobs for several agents in plain words works like @mentioning each of them.
-    const namedTargets =
+    const dispatch =
       routingInput === null || atMentionTargets.length > 0
-        ? []
-        : namedAgentSelections(messageTextForSend, routingInput.instanceEntries).map(
-            (modelSelection) => ({
-              modelSelection,
-              switchedByMention: true,
-              matchedHandle: null,
-              matchedModelLabel: null,
-              matchedTargetLabel: null,
-            }),
-          );
-    const mentionedTargets = claudeLast(
-      atMentionTargets.length > 0 ? atMentionTargets : namedTargets,
-      isClaudeSelection,
+        ? null
+        : namedDispatch(typedMessageText, routingInput.instanceEntries);
+    const messageTextForSend = dispatch
+      ? `${typedMessageText}\n\n${dispatch.hint}`
+      : typedMessageText;
+    const mentionedTargets = claudeLast(atMentionTargets, (selection) =>
+      providerInstanceEntries.some(
+        (entry) => entry.instanceId === selection.instanceId && entry.driverKind === "claudeAgent",
+      ),
     );
     const promptProviderRouting =
       routingInput === null
         ? null
         : mentionedTargets.length > 0
           ? mentionedTargets[0]!
-          : resolvePromptProviderRouting(routingInput);
+          : dispatch
+            ? {
+                modelSelection: dispatch.lead,
+                switchedByMention: true,
+                matchedHandle: null,
+                matchedModelLabel: null,
+                matchedTargetLabel: null,
+              }
+            : resolvePromptProviderRouting(routingInput);
     const queuedAgentSelections = mentionedTargets.slice(1).map((target) => target.modelSelection);
     // An @mention wins; otherwise the channel keeps talking to its last agent, if it has one.
     const addressedSelection =

@@ -160,19 +160,38 @@ const pickModel = (entries: ReadonlyArray<RouteEntry>, driver: string, model: Re
   return entry && slug ? { instanceId: entry.instanceId, model: slug.slug } : null;
 };
 
+export interface NamedDispatch {
+  /** Claude, who hands the jobs out and reports back. */
+  readonly lead: ModelSelection;
+  readonly hint: string;
+}
+
 /**
  * A message that gives jobs to several agents by name ("Gemini, look into X. ChatGPT, fix Y.")
- * becomes a group chat: each named agent answers in turn in this chat.
+ * goes to Claude, who starts each named agent in its own chat at the same time and posts each
+ * answer back here as it finishes.
  */
-export function namedAgentSelections(
+export function namedDispatch(
   prompt: string,
   entries: ReadonlyArray<RouteEntry>,
-): ReadonlyArray<ModelSelection> {
-  const selections = NAMED_AGENTS.filter((agent) => agent.names.test(prompt)).flatMap((agent) => {
+): NamedDispatch | null {
+  const named = NAMED_AGENTS.filter((agent) => agent.names.test(prompt)).flatMap((agent) => {
     const selection = pickModel(entries, agent.driver, agent.model);
-    return selection ? [selection] : [];
+    return selection ? [{ label: agent.label, driver: agent.driver, selection }] : [];
   });
-  return selections.length > 1 ? selections : [];
+  const lead = pickModel(entries, "claudeAgent", /opus/i);
+  if (named.length < 2 || !lead) return null;
+  const targets = named
+    .filter((agent) => agent.driver !== "claudeAgent")
+    .map(
+      (agent) =>
+        `${agent.label} {providerInstanceId:"${agent.selection.instanceId}", model:"${agent.selection.model}"}`,
+    )
+    .join(", ");
+  return {
+    lead,
+    hint: `(Run these at the same time: give each named agent only its own job with one delegate_task call each, targets ${targets}. Do any job meant for you yourself meanwhile. Say in one line who is on what. As each one finishes, post its answer here starting with its name.)`,
+  };
 }
 
 /** Picks an agent from what the message says, so the user doesn't have to @ one each time. */
