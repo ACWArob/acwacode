@@ -1,14 +1,26 @@
-<h1 align="center">nabilcode</h1>
+<h1 align="center">acwa desk</h1>
 
-<p align="center">A desktop harness for coding agents: Slack-style channels for talking to them, a board for your docs, and memory wired into <a href="https://github.com/latrael/cabinet">Cabinet</a>.</p>
+<p align="center">One app for all your coding and chat agents: Claude, Codex, Gemini, and open models like DeepSeek, Kimi and Qwen, with channels, a board for your docs, study mode, voice calls, and phone access.</p>
 
 <p align="center">
-  <img src="./docs/screenshots/board.png" width="100%" alt="nabilcode board: the #clamp-helper channel as the main card with a note, an agent turn, and a later note in posting order, the README and a decisions note open as Markdown cards beside it, and the composer showing the Note toggle and Replying to the last agent" />
+  <img src="./docs/screenshots/board.png" width="100%" alt="acwa desk board: the #clamp-helper channel as the main card with a note, an agent turn, and a later note in posting order, the README and a decisions note open as Markdown cards beside it, and the composer showing the Note toggle and Replying to the last agent" />
 </p>
 
-nabilcode runs the coding agents already installed on your machine: Claude Code, Codex, and ACP agents such as Antigravity, Grok, Kiro, and fx. Each project gets `#channels` where you write notes and `@` an agent when you want work done, next to a board of its notes, PDFs, and diffs. Cabinet, a separate local app, holds what your agents know about a project. nabilcode reads from it, writes to it, and gives agents Cabinet's MCP tools.
+acwa desk runs the agents already on your machine (Claude Code, Codex, Gemini CLI, OpenCode, and other ACP agents) on your own subscriptions. Each project gets `#channels` where you write notes and `@` one agent, several, or all of them, next to a board of its notes, PDFs, and diffs.
 
-It is forked from [T3 Code](https://github.com/pingdotgg/t3code) and reduced to the desktop app and the local web client it runs on.
+It is forked from [nabilcode](https://github.com/latrael/nabilcode) by latrael, which is forked from [T3 Code](https://github.com/pingdotgg/t3code). Thanks to both.
+
+## What acwa desk adds
+
+- **Several agents, one message.** `@claude @codex review this` or `@all` sends to each agent in turn; later agents see the earlier answers.
+- **Full force.** With the included guidance, Claude acts as the lead and delegates research, code, and review to the other agents in parallel through the `delegate_task` tool.
+- **Voice calls.** The phone button in the composer starts a hands-free call: talk, and the agent answers out loud. The people button starts a **council call**: every agent answers in its own voice (Claude a British man, GPT an American man, Gemini an American woman, DeepSeek and other open models a kid).
+- **Study mode.** Agents can draw multiple-choice quizzes and flashcards right in the thread ("make 10 MCQs from this PDF").
+- **Open models.** Add OpenCode as a provider and use DeepSeek, Kimi, Qwen, GLM, MiniMax and more through one OpenRouter key.
+- **Phone access.** Pair the T3 Code mobile app or a phone browser over Tailscale; it reconnects on its own after the first pairing.
+- **Bring your history.** `node scripts/import-chat-exports.ts <export.zip|folder> <output folder>` turns Claude, ChatGPT and Gemini exports into Markdown you can add as a project.
+- **Usage that makes sense.** The Usage page opens on how much of each plan is left; the API-equivalent estimate is labeled as an estimate, not a bill.
+- **Seagreen theme**, Claude in Chrome on by default, and a native arm64/x64 install fix for Macs running Terminal under Rosetta.
 
 ## What you get
 
@@ -50,7 +62,7 @@ It is forked from [T3 Code](https://github.com/pingdotgg/t3code) and reduced to 
 
 ### Agents and usage
 
-- **Your subscriptions.** nabilcode drives the agents you are already signed in to. It does not resell tokens.
+- **Your subscriptions.** acwa desk drives the agents you are already signed in to. It does not resell tokens.
 - **Limits at a glance.** **Usage → Limits** shows session and weekly quota, with reset times, for Codex, Claude, and Antigravity. Antigravity's limits come from the `agy` CLI's own sign-in in your system keychain, so macOS asks for permission the first time.
 - **Antigravity subagents.** Antigravity's subagent activity streams into the channel, nested under the step that started it.
 - **Bring your history.** The Welcome page imports Claude Code and Codex history, and Antigravity conversations started in Zed. Imported Antigravity threads continue with their full context.
@@ -64,7 +76,7 @@ It is forked from [T3 Code](https://github.com/pingdotgg/t3code) and reduced to 
 
 ### 1. Install the toolchain
 
-nabilcode uses [Vite+](https://viteplus.dev). Install its `vp` command, then install dependencies from the repository root:
+acwa desk uses [Vite+](https://viteplus.dev). Install its `vp` command, then install dependencies from the repository root:
 
 ```bash
 curl -fsSL https://vite.plus | bash
@@ -116,10 +128,10 @@ pnpm cabinet start --library ~/Cabinet-Sandbox
 
 In Cabinet, under **Settings → Agents**, create two tokens:
 
-- a **harness token** with **Can review memory proposals** turned on. nabilcode uses it for reading, writing, and reviewing proposals. Agents never receive it.
+- a **harness token** with **Can review memory proposals** turned on. acwa desk uses it for reading, writing, and reviewing proposals. Agents never receive it.
 - a plain **agent token**. Agents use it for Cabinet's MCP tools.
 
-Then in nabilcode, go to **Settings → Cabinet**. Turn Cabinet on, set the base URL (use `http://127.0.0.1:4747` rather than `localhost`), and paste both tokens. The status should read **Connected**, and **Agent tools** should read **Active**.
+Then in acwa desk, go to **Settings → Cabinet**. Turn Cabinet on, set the base URL (use `http://127.0.0.1:4747` rather than `localhost`), and paste both tokens. The status should read **Connected**, and **Agent tools** should read **Active**.
 
 ### 4. Try it
 
@@ -145,4 +157,4 @@ cd apps/web && vp exec playwright install chromium
 
 ## License
 
-[MIT](./LICENSE). nabilcode is forked from [T3 Code](https://github.com/pingdotgg/t3code) by T3 Tools.
+[MIT](./LICENSE). acwa desk is forked from [nabilcode](https://github.com/latrael/nabilcode) by latrael, itself forked from [T3 Code](https://github.com/pingdotgg/t3code) by T3 Tools.

@@ -99,6 +99,21 @@ sees the recording, which runs in T3 Code itself.
 are down, and **Toggle** always needs a second press. Change the chord itself in
 [Keybindings settings](./keybindings.md).
 
+## Voice calls
+
+Talk to an agent hands-free. In the composer, choose the phone button to start a call
+with the thread's agent, or the people button for a **council call**, which sends each
+question to `@all` so every agent answers in turn. The call listens until you stop talking,
+sends what you said, reads the reply aloud, and then listens again. Choose **End call** to stop.
+
+Calls use your voice input setup above for transcription, so set that up first, and your
+device's built-in voices to speak. Each agent family gets its own voice; the voices
+available depend on your system. Replies are read without code blocks or links, and a long
+reply is cut short with "The rest is on screen."
+
+A browser only allows the microphone on `https://` addresses and on the same machine, so
+calls from a phone browser need an HTTPS route such as [Tailscale HTTPS](./remote-access.md#tailscale-https).
+
 ## Improve recognition
 
 - **Language** picks what you speak. **Auto** lets a multilingual model detect
