@@ -131,3 +131,18 @@ export function createThreadNotificationGate<Key>(
     },
   };
 }
+
+/**
+ * How to tell the user about a thread: nothing while they're looking at it, otherwise a system
+ * banner, even with the app in front, or an in-app toast where banners are off or not allowed.
+ */
+export function threadNotificationPresentation(input: {
+  readonly focused: boolean;
+  readonly viewingThread: boolean;
+  readonly systemBanners: boolean;
+  readonly inApp: boolean;
+}): "none" | "banner" | "toast" {
+  if (input.focused && input.viewingThread) return "none";
+  if (input.systemBanners) return "banner";
+  return input.inApp && input.focused ? "toast" : "none";
+}

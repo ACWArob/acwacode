@@ -24,7 +24,7 @@ export function NotificationSettings() {
       {...searchableSetting("thread-notifications")}
       description={
         permissionMessage ??
-        `System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while ${APP_BASE_NAME} is open.`
+        `System banners when a thread finishes, fails, or needs input or approval, even while ${APP_BASE_NAME} is in front. Applies to this device while ${APP_BASE_NAME} is open.`
       }
       control={
         <Select

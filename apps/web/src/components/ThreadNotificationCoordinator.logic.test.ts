@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import {
+  threadNotificationPresentation,
   createThreadNotificationGate,
   isSnoozedForNotification,
   RELEASED_COMPLETION_GRACE_MS,
@@ -242,5 +243,25 @@ describe("isSnoozedForNotification", () => {
     ],
   ])("a completion %s is suppressed: %s", (_name, shell, completedAt, now, expected) => {
     expect(isSnoozedForNotification(shell, completedAt, now)).toBe(expected);
+  });
+});
+
+describe("threadNotificationPresentation", () => {
+  const base = { focused: true, viewingThread: false, systemBanners: true, inApp: true };
+
+  it("shows a system banner even while the app is in front", () => {
+    expect(threadNotificationPresentation(base)).toBe("banner");
+    expect(threadNotificationPresentation({ ...base, focused: false })).toBe("banner");
+  });
+
+  it("stays quiet about the thread on screen", () => {
+    expect(threadNotificationPresentation({ ...base, viewingThread: true })).toBe("none");
+  });
+
+  it("falls back to an in-app toast when banners are off", () => {
+    expect(threadNotificationPresentation({ ...base, systemBanners: false })).toBe("toast");
+    expect(threadNotificationPresentation({ ...base, systemBanners: false, focused: false })).toBe(
+      "none",
+    );
   });
 });

@@ -36,6 +36,7 @@ import { resolveSidebarThreadStatus, type SidebarThreadStatus } from "./Sidebar.
 import {
   createThreadNotificationGate,
   isSnoozedForNotification,
+  threadNotificationPresentation,
   type ThreadNotificationKind,
   type ThreadNotificationObservation,
 } from "./ThreadNotificationCoordinator.logic";
@@ -159,12 +160,17 @@ export function startThreadNotifications(
         hasNotificationSound(getClientSettings().notificationMode),
       );
     }
-    if (
-      inAppNotificationsEnabled &&
-      document.visibilityState === "visible" &&
-      document.hasFocus() &&
-      (active.environmentId !== environmentId || active.threadId !== thread.id)
-    ) {
+    const focused = document.visibilityState === "visible" && document.hasFocus();
+    const presentation = threadNotificationPresentation({
+      focused,
+      viewingThread: active.environmentId === environmentId && active.threadId === thread.id,
+      systemBanners:
+        hasDesktopNotifications(mode) &&
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted",
+      inApp: inAppNotificationsEnabled,
+    });
+    if (presentation === "toast") {
       const toastKey = threadKey({ environmentId, threadId: thread.id });
       const toastId: ToastId = toastManager.add({
         onRemove: (): void => forgetToast(toastKey, toastId),
@@ -200,13 +206,7 @@ export function startThreadNotifications(
       openToasts.set(toastKey, [...(openToasts.get(toastKey) ?? []), toastId]);
       return;
     }
-    if (
-      !hasDesktopNotifications(mode) ||
-      (document.visibilityState === "visible" && document.hasFocus()) ||
-      typeof Notification === "undefined" ||
-      Notification.permission !== "granted"
-    )
-      return;
+    if (presentation !== "banner") return;
     try {
       const notification = new Notification(title, {
         body: thread.title,
