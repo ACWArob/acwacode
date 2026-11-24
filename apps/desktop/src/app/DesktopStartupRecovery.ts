@@ -89,7 +89,7 @@ function describeOffer(offer: StartupRecoveryOffer): { text: string; action: str
       };
     case "Downloading":
       return {
-        text: `Downloading ${offer.version}${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. T3 Code restarts when the download is done.`,
+        text: `Downloading ${offer.version}${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. acwa desk restarts when the download is done.`,
         action: "",
       };
     case "Reinstall":
@@ -104,7 +104,7 @@ function describeOffer(offer: StartupRecoveryOffer): { text: string; action: str
       };
     case "ManagedPolicy":
       return {
-        text: "Your organization's managed policy stopped T3 Code from starting. Send the details below to your IT administrator.",
+        text: "Your organization's managed policy stopped acwa desk from starting. Send the details below to your IT administrator.",
         action: "",
       };
   }

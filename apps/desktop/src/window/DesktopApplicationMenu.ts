@@ -65,7 +65,7 @@ const runMainContentsCommand = Effect.fn("desktop.menu.runMainContentsCommand")(
 });
 
 const describeUpdate = (version: string | null) =>
-  version === null ? "A new version of T3 Code" : `T3 Code ${version}`;
+  version === null ? "A new version of acwa desk" : `acwa desk ${version}`;
 
 const checkForUpdatesFromMenu = Effect.gen(function* () {
   const updates = yield* DesktopUpdates.DesktopUpdates;
@@ -77,7 +77,7 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
     yield* electronDialog.showMessageBox({
       type: "info",
       title: "You're up to date!",
-      message: `T3 Code ${updateState.currentVersion} is currently the newest version available.`,
+      message: `acwa desk ${updateState.currentVersion} is currently the newest version available.`,
       buttons: ["OK"],
     });
   } else if (updateState.status === "available") {
@@ -85,7 +85,7 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
       type: "info",
       title: "Update available",
       message: `${describeUpdate(updateState.availableVersion)} is available.`,
-      detail: `You're running T3 Code ${updateState.currentVersion}.`,
+      detail: `You're running acwa desk ${updateState.currentVersion}.`,
       buttons: ["Download", "Later"],
       defaultId: 0,
       cancelId: 1,
