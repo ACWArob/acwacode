@@ -86,6 +86,7 @@ acwa desk keeps everything nabilcode built on top of T3 Code:
 
 - **A bento board per project.** Pick Focus, Split, Bento (8+4), or 2×2. Drag cards between slots and drag an edge to resize; widths snap to a 12-column grid. Each project keeps its own layout.
 - **Thread cards.** The live channel is the main card. Open other channels beside it, then click **Focus** to swap one into the main card.
+- **Split screen across projects.** **Add card → Thread from another project** puts a chat from any project on the board, labeled with its project and ready to reply in. **Split across projects** switches to 2×2 and fills the empty slots with the latest chats of your three most recently active other projects.
 - **Notes, documents, and diffs as cards.** In the Files drawer, open Markdown, PDFs, and HTML pages from the repo, or notes and PDFs from Cabinet. PDF and HTML previews are read-only, and HTML pages can load relative assets in their folder and subfolders. Use **Open document…** in the command palette to search your home folder or paste a path. Diff cards show a thread's full diff.
 - **Links in chat open on the board.** Clicking a Markdown, PDF, or HTML link in a message opens it as a card. The board moves from Focus to Split to Bento as you open more, and back again as you close them.
 - **Edit Markdown in place.** Click **Edit** on a note card and write in its formatting (**Rich**) or as raw Markdown (**Text**). Press ⌘S to save back to Cabinet or the repo. If the note changed in Cabinet while you were editing, you choose whether to reload or overwrite.

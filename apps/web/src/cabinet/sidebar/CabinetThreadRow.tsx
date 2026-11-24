@@ -11,16 +11,11 @@ import {
 } from "react";
 
 import { Kbd } from "~/components/ui/kbd";
-import {
-  hasUnseenCompletion,
-  resolveSidebarRowStatus,
-  resolveThreadLastVisitedAt,
-} from "~/components/Sidebar.logic";
 import { cn } from "~/lib/utils";
 import { useUiStateStore } from "~/uiStateStore";
 import { MemoryBadge } from "../memory/MemoryBadge";
 import { useThreadProposalCount } from "../memory/useMemoryProposals";
-import { cabinetRowStatus, type CabinetThreadStatus } from "./cabinetStatus.logic";
+import { cabinetThreadStatus, type CabinetThreadStatus } from "./cabinetStatus.logic";
 
 // Static dots only: a continuously repainting animation pegs the GPU on high-refresh displays.
 export const DOT_CLASS: Record<CabinetThreadStatus, string> = {
@@ -74,13 +69,10 @@ export function RenameInput(props: {
 export function useCabinetThreadStatus(thread: EnvironmentThreadShell) {
   const threadKey = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
   const localLastVisitedAt = useUiStateStore((state) => state.threadLastVisitedAtById[threadKey]);
-  const lastVisitedAt = resolveThreadLastVisitedAt(thread.lastVisitedAt, localLastVisitedAt);
-  const statusInput = { ...thread, lastVisitedAt };
-  const { status, text } = cabinetRowStatus(resolveSidebarRowStatus(statusInput));
-  return { status, text, unread: status === "idle" && hasUnseenCompletion(statusInput) };
+  return cabinetThreadStatus(thread, localLastVisitedAt);
 }
 
-export function CabinetThreadStatusDot(props: ReturnType<typeof useCabinetThreadStatus>) {
+export function CabinetThreadStatusDot(props: ReturnType<typeof cabinetThreadStatus>) {
   const m = useMessages();
   const { status, text, unread } = props;
   if (status === "idle" && !unread) return null;

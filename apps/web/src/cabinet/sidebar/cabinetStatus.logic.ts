@@ -1,6 +1,12 @@
+import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import { msg } from "gt-react";
 
-import type { SidebarThreadStatus } from "~/components/Sidebar.logic";
+import {
+  hasUnseenCompletion,
+  resolveSidebarRowStatus,
+  resolveThreadLastVisitedAt,
+  type SidebarThreadStatus,
+} from "~/components/Sidebar.logic";
 
 /** Cabinet's four row states. Not the code's `"waiting"`, which means idle or blocked on a child. */
 export type CabinetThreadStatus = "working" | "waiting" | "failed" | "idle";
@@ -26,4 +32,15 @@ export function cabinetRowStatus(status: SidebarThreadStatus): {
     case "ready":
       return { status: "idle", text: null };
   }
+}
+
+/** A thread's row status dot input; `localLastVisitedAt` is the UI store's visit watermark. */
+export function cabinetThreadStatus(
+  thread: EnvironmentThreadShell,
+  localLastVisitedAt: string | undefined,
+) {
+  const lastVisitedAt = resolveThreadLastVisitedAt(thread.lastVisitedAt, localLastVisitedAt);
+  const statusInput = { ...thread, lastVisitedAt };
+  const { status, text } = cabinetRowStatus(resolveSidebarRowStatus(statusInput));
+  return { status, text, unread: status === "idle" && hasUnseenCompletion(statusInput) };
 }

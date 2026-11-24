@@ -39,6 +39,13 @@ turn.
 Press **Note** next to send to post messages to the channel without running any agent. Press it
 again to go back to agents. Note mode lasts until you reload.
 
+## Dashboard
+
+The dashboard shows every project at once. Open it with the grid button in the top bar or
+**Open dashboard** in the command palette. Each card shows how many chats are running or need
+you, when the project was last active, and its three latest chats, with **New chat** to start
+another. Projects with work in progress come first, and the search box filters by name or folder.
+
 ## Full force
 
 In full force, Claude Opus leads: it splits the work and hands parts to other agents in
@@ -173,6 +180,20 @@ Revoke a paired phone in **Settings → Sharing & access**. See
   instead of its MagicDNS name if a name stops resolving.
 - **The phone can't connect.** Check that both devices show as connected in Tailscale and that
   acwa desk is running on the Mac.
+
+## Split screen across projects
+
+The board can show chats from other projects next to the current one, each with its own composer.
+
+- **Add one chat.** Choose **Add card → Thread from another project**. Chats are grouped by
+  project, and you can search by chat or project name.
+- **Open four projects at once.** Choose **Add card → Split across projects**. The board switches
+  to 2×2 and fills its empty slots with the latest chat from each of the three most recently
+  active other projects. Cards you already placed stay where they are.
+
+A card from another project shows that project's name in its header. Clicking its title, or
+**Focus**, opens the chat in its own project, and the board you left keeps its layout. The split
+belongs to the current project's board, like any other layout.
 
 ## Install as a Mac app
 

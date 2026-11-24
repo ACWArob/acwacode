@@ -1,8 +1,8 @@
 import { useAtomValue } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
-import { useLocation } from "@tanstack/react-router";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useGT, useMessages } from "gt-react";
-import { SearchIcon } from "lucide-react";
+import { LayoutGridIcon, SearchIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { openCommandPalette } from "~/commandPaletteBus";
@@ -13,7 +13,9 @@ import {
   useEnvironmentStageLabel,
 } from "~/components/SidebarStageBackdrop";
 import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { isElectron } from "~/env";
 import { useShownThreadRouteTarget } from "~/hooks/useShownThreadRouteTarget";
 import { useEnvironmentIdentificationMode } from "~/hooks/useSettings";
@@ -73,6 +75,30 @@ function SearchBox() {
         </kbd>
       ) : null}
     </button>
+  );
+}
+
+function DashboardButton(props: { readonly current: boolean }) {
+  const gt = useGT();
+  const navigate = useNavigate();
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            size="icon-xs"
+            variant="ghost-muted"
+            aria-label={gt("Dashboard")}
+            aria-current={props.current ? "page" : undefined}
+            onClick={() => void navigate({ to: "/dashboard" })}
+          />
+        }
+      >
+        <LayoutGridIcon />
+      </TooltipTrigger>
+      <TooltipPopup side="bottom">{gt("Dashboard")}</TooltipPopup>
+    </Tooltip>
   );
 }
 
@@ -147,6 +173,7 @@ export function TopBar(props: { readonly leading: ReactNode }) {
       {onBoardRoute ? <BoardControls /> : <span />}
       <div className="flex min-w-0 items-center justify-end gap-1">
         {active === null ? null : <CabinetStatusChips environmentId={active.environmentId} />}
+        <DashboardButton current={pathname === "/dashboard"} />
       </div>
     </header>
   );
