@@ -71,7 +71,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import {
   clampCollapsedComposerCursor,
   type ComposerTrigger,
@@ -143,9 +143,17 @@ import { useDictationShortcut } from "../../speech/useDictationShortcut";
 import { useDictationSubmissionShortcut } from "../../speech/useDictationSubmissionShortcut";
 import { useEnvironmentSpeechInput } from "../../speech/useEnvironmentSpeechInput";
 import { ComposerSpeechButton, ComposerSpeechRecordingPill } from "./ComposerSpeechButton";
+import { CallScreen } from "./CallScreen";
 import { ComposerCallButton } from "./ComposerCallButton";
 import { useVoiceCall } from "../../speech/useVoiceCall";
-import { type CallMessage, VOICE_CALL_HINT } from "../../speech/voiceCall.logic";
+import {
+  callActivity,
+  type CallActivityItem,
+  type CallMessage,
+  readCallScreenOpen,
+  VOICE_CALL_HINT,
+  writeCallScreenOpen,
+} from "../../speech/voiceCall.logic";
 import type { AssistantCitationSourceAnchor } from "~/lib/assistantTextSelection";
 import { shortcutLabelForCommand, type ShortcutMatchContext } from "../../keybindings";
 import {
@@ -397,6 +405,7 @@ export interface ChatComposerProps {
   activeThreadRuns: ReadonlyArray<OrchestrationV2Run>;
   /** The thread's messages, for voice calls to read replies aloud. */
   callMessages: ReadonlyArray<CallMessage>;
+  callTurnItems: ReadonlyArray<CallActivityItem>;
   promptHistoryEntries: ReadonlyArray<TimelineEntry>;
   forceExpandedOnMobile: boolean;
   projectSelectionRequired: boolean;
@@ -531,6 +540,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     activeThread,
     activeThreadRuns,
     callMessages,
+    callTurnItems,
     promptHistoryEntries,
     forceExpandedOnMobile,
     projectSelectionRequired,
@@ -2338,6 +2348,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     },
     submit: () => submitComposerRef.current(),
   });
+  const [callScreenOpen, setCallScreenOpen] = useState(readCallScreenOpen);
+  const showCallScreen = (open: boolean) => {
+    writeCallScreenOpen(open);
+    setCallScreenOpen(open);
+  };
+  const startCall = (council: boolean) => {
+    if (window.matchMedia("(max-width: 640px)").matches) showCallScreen(true);
+    voiceCall.startCall(council);
+  };
   const submitComposer = (
     event?: { preventDefault: () => void },
     dispatchMode?: ComposerDispatchMode,
@@ -4069,9 +4088,27 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       phase={voiceCall.phase}
                       council={voiceCall.council}
                       available={speechInput.available && !dictationDisabled}
-                      onStart={voiceCall.startCall}
+                      onStart={startCall}
                       onEnd={voiceCall.endCall}
+                      onOpenScreen={() => showCallScreen(true)}
                     />
+                    {callScreenOpen
+                      ? createPortal(
+                          <CallScreen
+                            threadId={activeThread?.id ?? ""}
+                            threadTitle={activeThread?.title ?? ""}
+                            phase={voiceCall.phase}
+                            council={voiceCall.council}
+                            speaker={voiceCall.speaker}
+                            available={speechInput.available && !dictationDisabled}
+                            activity={callActivity(callTurnItems)}
+                            onStart={startCall}
+                            onEnd={voiceCall.endCall}
+                            onClose={() => showCallScreen(false)}
+                          />,
+                          document.body,
+                        )
+                      : null}
                     <VoiceInputSetup
                       environmentId={speechInput.transcriptionEnvironmentId}
                       open={speechInput.setup.open}

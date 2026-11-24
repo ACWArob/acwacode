@@ -100,6 +100,7 @@ export function useVoiceCall(input: {
   const [phase, setPhase] = useState<VoiceCallPhase>("off");
   const [council, setCouncil] = useState(false);
   const [talking, setTalking] = useState(false);
+  const [speaker, setSpeaker] = useState<string | null>(null);
   const [seenIds, setSeenIds] = useState<ReadonlySet<string>>(() => new Set());
   const latest = useRef(input);
   const tracker = useRef<SilenceTracker | null>(null);
@@ -130,6 +131,7 @@ export function useVoiceCall(input: {
     tracker.current = null;
     latest.current.speech.cancel();
     setTalking(false);
+    setSpeaker(null);
     setPhase("off");
   });
 
@@ -163,21 +165,20 @@ export function useVoiceCall(input: {
   useEffect(() => {
     if (!next || talking || stopSpeaking.current) return;
     const id = next.id;
-    stopSpeaking.current = speak(
-      speakableText(next.text),
-      voiceProfileFor(latest.current.speakerOf(next)),
-      {
-        onStart: () => {
-          setSeenIds((seen) => new Set([...seen, id]));
-          setPhase("speaking");
-          setTalking(true);
-        },
-        onDone: () => {
-          stopSpeaking.current = null;
-          setTalking(false);
-        },
+    const who = latest.current.speakerOf(next);
+    stopSpeaking.current = speak(speakableText(next.text), voiceProfileFor(who), {
+      onStart: () => {
+        setSeenIds((seen) => new Set([...seen, id]));
+        setPhase("speaking");
+        setTalking(true);
+        setSpeaker(who);
       },
-    );
+      onDone: () => {
+        stopSpeaking.current = null;
+        setTalking(false);
+        setSpeaker(null);
+      },
+    });
   }, [next, talking]);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- hands the turn back to the caller once every agent has spoken
@@ -198,5 +199,5 @@ export function useVoiceCall(input: {
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- stops audio when the composer unmounts mid-call
   useEffect(() => () => stopSpeaking.current?.(), []);
 
-  return { phase, council, startCall, endCall };
+  return { phase, council, speaker, startCall, endCall };
 }

@@ -20,7 +20,7 @@ export const useComposerNoteModeStore = create<{
 
 /**
  * Who a message without an @mention goes to, unless the user switched to notes (null posts a
- * note): a clear topic picks its agent, a follow-up stays with the channel's last agent, and
+ * note): a clear topic picks its paid agent, a follow-up stays with the channel's last agent, and
  * anything else goes to the general pick (Opus).
  */
 export function resolveLastAgentSelection(input: {
@@ -75,13 +75,6 @@ const TOPIC_ROUTES: ReadonlyArray<{
       /\b(research|latest|news|search|look up|find out|compare|sources|papers?|summari[sz]e)\b/i.test(
         prompt,
       ),
-  },
-  {
-    reason: "browsing",
-    driver: "acpRegistry",
-    model: /deepseek/i,
-    matches: (prompt) =>
-      /\b(browse|scrape|website|web ?page|fill (out|in)|form|parse|extract)\b/i.test(prompt),
   },
 ];
 

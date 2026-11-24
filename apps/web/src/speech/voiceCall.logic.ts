@@ -132,20 +132,12 @@ export function voiceProfileFor(speaker: string): VoiceProfile {
   return VOICE_PROFILES.claude;
 }
 
+/** Any turn item; fields are read defensively because their shapes differ by type. */
 export interface CallActivityItem {
   readonly id: string;
   readonly type: string;
   readonly runId: string | null;
-  readonly input?: unknown;
-  readonly fileName?: string;
-  readonly additions?: number;
-  readonly deletions?: number;
-  readonly patterns?: ReadonlyArray<string>;
-  readonly toolName?: string | null;
-  readonly driver?: string;
-  readonly prompt?: string;
-  readonly progress?: string;
-  readonly viewedImagePath?: string;
+  readonly [field: string]: unknown;
 }
 
 export interface CallActivityRow {
@@ -165,43 +157,87 @@ export function callActivity(
   items: ReadonlyArray<CallActivityItem>,
   limit = 8,
 ): ReadonlyArray<CallActivityRow> {
+  const text = (value: unknown) => (typeof value === "string" && value.length > 0 ? value : null);
+  const count = (value: unknown) => (typeof value === "number" ? value : null);
   const rows: CallActivityRow[] = [];
   for (const item of items) {
     const base = { id: item.id, runId: item.runId };
-    if (item.type === "command_execution" && typeof item.input === "string") {
-      rows.push({ ...base, kind: "command", text: oneLine(item.input) });
-    } else if (item.type === "file_change" && item.fileName) {
+    const input = text(item.input);
+    const fileName = text(item.fileName);
+    const prompt = text(item.prompt);
+    const imagePath = text(item.viewedImagePath);
+    const toolName = text(item.toolName);
+    if (item.type === "command_execution" && input) {
+      rows.push({ ...base, kind: "command", text: oneLine(input) });
+    } else if (item.type === "file_change" && fileName) {
+      const additions = count(item.additions);
+      const deletions = count(item.deletions);
       const counts =
-        item.additions !== undefined || item.deletions !== undefined
-          ? ` (+${item.additions ?? 0} −${item.deletions ?? 0})`
-          : "";
-      rows.push({ ...base, kind: "file", text: `Edited ${item.fileName}${counts}` });
+        additions !== null || deletions !== null ? ` (+${additions ?? 0} −${deletions ?? 0})` : "";
+      rows.push({ ...base, kind: "file", text: `Edited ${fileName}${counts}` });
     } else if (item.type === "web_search") {
+      const patterns = Array.isArray(item.patterns) ? item.patterns.filter(text) : [];
       rows.push({
         ...base,
         kind: "search",
-        text: oneLine(`Searched ${item.patterns?.join(", ") ?? "the web"}`),
+        text: oneLine(`Searched ${patterns.length > 0 ? patterns.join(", ") : "the web"}`),
       });
-    } else if (item.type === "subagent" && item.prompt) {
-      const status = item.progress ? ` (${item.progress})` : "";
+    } else if (item.type === "subagent" && prompt) {
+      const progress = text(item.progress);
       rows.push({
         ...base,
         kind: "agent",
-        text: oneLine(`${item.driver ?? "Agent"}: ${item.prompt}${status}`),
+        text: oneLine(
+          `${text(item.driver) ?? "Agent"}: ${prompt}${progress ? ` (${progress})` : ""}`,
+        ),
       });
-    } else if (item.type === "dynamic_tool" && item.viewedImagePath) {
-      rows.push({
-        ...base,
-        kind: "image",
-        text: `Looked at ${item.viewedImagePath.split("/").pop()}`,
-      });
-    } else if (item.type === "dynamic_tool" && item.toolName) {
+    } else if (item.type === "dynamic_tool" && imagePath) {
+      rows.push({ ...base, kind: "image", text: `Looked at ${imagePath.split("/").pop()}` });
+    } else if (item.type === "dynamic_tool" && toolName) {
       rows.push({
         ...base,
         kind: "tool",
-        text: oneLine(item.toolName.replace(/^mcp__[^_]+__/, "").replaceAll("_", " ")),
+        text: oneLine(toolName.replace(/^mcp__[^_]+__/, "").replaceAll("_", " ")),
       });
     }
   }
   return rows.slice(-limit);
+}
+
+export const CALL_AGENTS = [
+  { key: "claude", label: "Claude" },
+  { key: "gpt", label: "ChatGPT" },
+  { key: "gemini", label: "Gemini" },
+  { key: "open", label: "DeepSeek" },
+] as const;
+
+export type CallAgentKey = (typeof CALL_AGENTS)[number]["key"];
+
+/** Which call-screen bubble a speaker (provider instance and model) lights up. */
+export function callAgentKey(speaker: string | null): CallAgentKey | null {
+  if (!speaker) return null;
+  if (/gemini|antigravity/i.test(speaker)) return "gemini";
+  if (/deepseek|kimi|qwen|glm|minimax|opencode|mimo/i.test(speaker)) return "open";
+  if (/codex|gpt/i.test(speaker)) return "gpt";
+  return "claude";
+}
+
+const CALL_SCREEN_KEY = "acwa-call-screen";
+
+/** The call screen stays open across chat switches in this tab. */
+export function readCallScreenOpen(): boolean {
+  try {
+    return window.sessionStorage.getItem(CALL_SCREEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function writeCallScreenOpen(open: boolean): void {
+  try {
+    if (open) window.sessionStorage.setItem(CALL_SCREEN_KEY, "1");
+    else window.sessionStorage.removeItem(CALL_SCREEN_KEY);
+  } catch {
+    // Storage can be unavailable (private mode); the screen just won't persist.
+  }
 }

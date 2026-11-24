@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   callActivity,
+  callAgentKey,
   END_OF_TURN_SILENCE_MS,
   MAX_TURN_MS,
   repliesToSpeak,
@@ -162,5 +163,17 @@ describe("callActivity", () => {
       input: `step ${index}`,
     }));
     expect(callActivity(items, 3).map((row) => row.text)).toEqual(["step 9", "step 10", "step 11"]);
+  });
+});
+
+describe("callAgentKey", () => {
+  it.each([
+    ["claudeAgent claude-opus-5-5", "claude"],
+    ["codex gpt-5.5", "gpt"],
+    ["antigravity antigravity-default", "gemini"],
+    ["acpRegistry_opencode openrouter/deepseek/deepseek-v4.1-flash", "open"],
+    [null, null],
+  ])("%s → %s", (speaker, key) => {
+    expect(callAgentKey(speaker)).toBe(key);
   });
 });

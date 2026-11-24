@@ -76,7 +76,7 @@ describe("autoRoute", () => {
   it.each([
     ["fix the failing test in the parser", "gpt-5.5"],
     ["what's the latest news on humanoid robots", "antigravity-default"],
-    ["scrape the prices off this website", "openrouter/deepseek/deepseek-v4.1-flash"],
+    ["scrape the prices off this website", null],
     ["help me plan the semester project", null],
     ["thanks!", null],
   ])("%s → %s", (prompt, topic) => {

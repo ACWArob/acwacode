@@ -1,4 +1,4 @@
-import { PhoneIcon, PhoneOffIcon, UsersIcon } from "lucide-react";
+import { Maximize2Icon, PhoneIcon, PhoneOffIcon, UsersIcon } from "lucide-react";
 import type { PointerEvent, ReactNode } from "react";
 
 import type { VoiceCallPhase } from "~/speech/voiceCall.logic";
@@ -20,6 +20,7 @@ export function ComposerCallButton(props: {
   available: boolean;
   onStart(council: boolean): void;
   onEnd(): void;
+  onOpenScreen(): void;
 }) {
   if (props.phase !== "off") {
     return (
@@ -38,6 +39,12 @@ export function ComposerCallButton(props: {
           <PhoneOffIcon />
           End call
         </Button>
+        <CallStartButton
+          available
+          label="Open the call screen"
+          icon={<Maximize2Icon />}
+          onClick={props.onOpenScreen}
+        />
       </div>
     );
   }
@@ -54,6 +61,12 @@ export function ComposerCallButton(props: {
         label="Start a council call (every agent answers, each in its own voice)"
         icon={<UsersIcon />}
         onClick={() => props.onStart(true)}
+      />
+      <CallStartButton
+        available
+        label="Open the call screen"
+        icon={<Maximize2Icon />}
+        onClick={props.onOpenScreen}
       />
     </>
   );

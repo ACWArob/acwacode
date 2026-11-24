@@ -3658,6 +3658,7 @@ export default function ChatView(props: ChatViewProps) {
                                 activeThread={activeThread}
                                 activeThreadRuns={serverProjection?.runs ?? EMPTY_RUNS}
                                 callMessages={serverProjection?.messages ?? EMPTY_CALL_MESSAGES}
+                                callTurnItems={serverProjection?.turnItems ?? EMPTY_TURN_ITEMS}
                                 promptHistoryEntries={timelineEntries}
                                 forceExpandedOnMobile={
                                   forceExpandedMobileComposer && isDraftHeroState
