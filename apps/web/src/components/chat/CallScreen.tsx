@@ -2,6 +2,8 @@ import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BotIcon,
+  CheckIcon,
+  MicIcon,
   FileEditIcon,
   GlobeIcon,
   ImageIcon,
@@ -19,6 +21,7 @@ import {
   CALL_AGENTS,
   callAgentKey,
   type CallActivityRow,
+  type CallReadiness,
   type VoiceCallPhase,
 } from "~/speech/voiceCall.logic";
 import { buildThreadRouteParams } from "../../threadRoutes";
@@ -51,18 +54,26 @@ export function CallScreen(props: {
   readonly phase: VoiceCallPhase;
   readonly council: boolean;
   readonly speaker: string | null;
-  readonly available: boolean;
+  readonly readiness: CallReadiness;
+  readonly micRecording: boolean;
+  readonly micError: string | null;
+  readonly level: number;
+  readonly heard: string;
   readonly activity: ReadonlyArray<CallActivityRow>;
   readonly onStart: (council: boolean) => void;
+  readonly onDoneTalking: () => void;
   readonly onEnd: () => void;
   readonly onClose: () => void;
 }) {
+  const navigate = useNavigate();
   const [picking, setPicking] = useState(false);
+  const ready = props.readiness.kind === "ready";
+  const listening = props.phase === "listening";
   const speaking = callAgentKey(props.speaker);
   const active = props.phase !== "off";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background">
+    <div className="fixed inset-0 z-45 flex flex-col bg-background">
       <header className="flex items-center gap-2 border-b px-4 py-3">
         <button
           type="button"
@@ -103,10 +114,44 @@ export function CallScreen(props: {
             ))}
           </section>
 
-          <p className="text-center text-muted-foreground text-sm">
-            {props.council && active ? "Council · " : ""}
-            {STATUS[props.phase]}
-          </p>
+          <section className="flex flex-col items-center gap-3 px-6 text-center">
+            {props.readiness.kind === "setup" ? (
+              <>
+                <p className="text-sm">Voice needs a one-time setup on this device.</p>
+                <Button
+                  onClick={() =>
+                    void navigate({
+                      to: "/settings/voice",
+                      hash: "voice-transcription-destination",
+                    })
+                  }
+                >
+                  <MicIcon />
+                  Set up voice
+                </Button>
+              </>
+            ) : props.readiness.kind === "unavailable" ? (
+              <p className="text-destructive text-sm">{props.readiness.reason}</p>
+            ) : props.micError ? (
+              <p className="text-destructive text-sm">{props.micError}</p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {props.council && active ? "Council · " : ""}
+                {listening && !props.micRecording ? "Starting the mic…" : STATUS[props.phase]}
+              </p>
+            )}
+            {listening && props.micRecording ? (
+              <div className="h-1.5 w-40 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary"
+                  style={{ width: `${Math.round(Math.min(1, props.level) * 100)}%` }}
+                />
+              </div>
+            ) : null}
+            {listening && props.heard ? (
+              <p className="line-clamp-3 text-sm">{props.heard}</p>
+            ) : null}
+          </section>
 
           <section className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
             <h2 className="mb-2 font-medium text-muted-foreground text-xs uppercase">
@@ -132,21 +177,27 @@ export function CallScreen(props: {
       )}
 
       <footer className="flex justify-center gap-3 border-t px-4 py-4">
+        {listening && props.micRecording ? (
+          <Button size="xl" onClick={props.onDoneTalking}>
+            <CheckIcon />
+            Done talking
+          </Button>
+        ) : null}
         {active ? (
           <Button variant="destructive" size="xl" onClick={props.onEnd}>
             <PhoneOffIcon />
-            End call
+            End
           </Button>
         ) : (
           <>
-            <Button size="xl" disabled={!props.available} onClick={() => props.onStart(false)}>
+            <Button size="xl" disabled={!ready} onClick={() => props.onStart(false)}>
               <PhoneIcon />
               Call
             </Button>
             <Button
               variant="outline"
               size="xl"
-              disabled={!props.available}
+              disabled={!ready}
               onClick={() => props.onStart(true)}
             >
               <UsersIcon />

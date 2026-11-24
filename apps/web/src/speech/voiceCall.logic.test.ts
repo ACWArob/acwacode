@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   callActivity,
+  callReadiness,
   callAgentKey,
   END_OF_TURN_SILENCE_MS,
   MAX_TURN_MS,
@@ -175,5 +176,21 @@ describe("callAgentKey", () => {
     [null, null],
   ])("%s → %s", (speaker, key) => {
     expect(callAgentKey(speaker)).toBe(key);
+  });
+});
+
+describe("callReadiness", () => {
+  it.each([
+    [{ available: true, destinationChosen: true, unsupportedReason: null }, "ready"],
+    [{ available: false, destinationChosen: false, unsupportedReason: null }, "setup"],
+    [{ available: false, destinationChosen: true, unsupportedReason: "No model" }, "unavailable"],
+  ] as const)("%o → %s", (input, kind) => {
+    expect(callReadiness(input).kind).toBe(kind);
+  });
+
+  it("passes the server's reason through", () => {
+    expect(
+      callReadiness({ available: false, destinationChosen: true, unsupportedReason: "No model" }),
+    ).toEqual({ kind: "unavailable", reason: "No model" });
   });
 });

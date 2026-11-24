@@ -118,6 +118,18 @@ export function useVoiceCall(input: {
   });
   const listen = useStableCallback(() => beginTurn(council));
 
+  // Silence detection ends a turn on its own; the caller can also end it right away.
+  const finishTurn = useStableCallback(() => {
+    if (phase !== "listening") return;
+    tracker.current = null;
+    setSeenIds(new Set(latest.current.messages.map((message) => message.id)));
+    setPhase("sending");
+    latest.current.speech.submitAfterDictation(() => {
+      latest.current.submit();
+      setPhase("waiting");
+    });
+  });
+
   const startCall = useStableCallback((withCouncil: boolean) => {
     if (!latest.current.speech.available || phase !== "off") return;
     setCouncil(withCouncil);
@@ -143,17 +155,10 @@ export function useVoiceCall(input: {
       if (!current || latest.current.speech.state.phase !== "recording") return;
       const next = trackSilence(current, latest.current.speech.level, Date.now());
       tracker.current = next.tracker;
-      if (!next.done) return;
-      tracker.current = null;
-      setSeenIds(new Set(latest.current.messages.map((message) => message.id)));
-      setPhase("sending");
-      latest.current.speech.submitAfterDictation(() => {
-        latest.current.submit();
-        setPhase("waiting");
-      });
+      if (next.done) finishTurn();
     }, LEVEL_SAMPLE_MS);
     return () => window.clearInterval(timer);
-  }, [phase]);
+  }, [phase, finishTurn]);
 
   const next =
     phase === "waiting" || phase === "speaking"
@@ -199,5 +204,5 @@ export function useVoiceCall(input: {
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- stops audio when the composer unmounts mid-call
   useEffect(() => () => stopSpeaking.current?.(), []);
 
-  return { phase, council, speaker, startCall, endCall };
+  return { phase, council, speaker, startCall, endCall, finishTurn };
 }

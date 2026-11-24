@@ -148,6 +148,7 @@ import { ComposerCallButton } from "./ComposerCallButton";
 import { useVoiceCall } from "../../speech/useVoiceCall";
 import {
   callActivity,
+  callReadiness,
   type CallActivityItem,
   type CallMessage,
   readCallScreenOpen,
@@ -4122,9 +4123,25 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                             phase={voiceCall.phase}
                             council={voiceCall.council}
                             speaker={voiceCall.speaker}
-                            available={speechInput.available && !dictationDisabled}
+                            readiness={callReadiness({
+                              available: speechInput.available && !dictationDisabled,
+                              destinationChosen: speechInput.transcriptionEnvironmentId !== null,
+                              unsupportedReason:
+                                speechInput.status && !speechInput.status.supported
+                                  ? speechInput.status.reason
+                                  : null,
+                            })}
+                            micRecording={speechInput.state.phase === "recording"}
+                            micError={speechInput.state.error}
+                            level={speechInput.level}
+                            heard={
+                              speechInput.preview
+                                ? `${speechInput.preview.committed}${speechInput.preview.tentative}`
+                                : ""
+                            }
                             activity={callActivity(callTurnItems)}
                             onStart={startCall}
+                            onDoneTalking={voiceCall.finishTurn}
                             onEnd={voiceCall.endCall}
                             onClose={() => showCallScreen(false)}
                           />,

@@ -225,20 +225,50 @@ export function callAgentKey(speaker: string | null): CallAgentKey | null {
 
 const CALL_SCREEN_KEY = "acwa-call-screen";
 
-/** The call screen stays open across chat switches in this tab. */
-export function readCallScreenOpen(): boolean {
+/** The web app on a phone is used for calls (the T3 Code mobile app is for typing). */
+function isPhoneApp(): boolean {
   try {
-    return window.sessionStorage.getItem(CALL_SCREEN_KEY) === "1";
+    return window.matchMedia("(max-width: 640px)").matches;
   } catch {
     return false;
   }
 }
 
+/** The call screen stays open or closed across chat switches in this tab; the phone app opens on it. */
+export function readCallScreenOpen(): boolean {
+  try {
+    const stored = window.sessionStorage.getItem(CALL_SCREEN_KEY);
+    return stored === null ? isPhoneApp() : stored === "1";
+  } catch {
+    return isPhoneApp();
+  }
+}
+
 export function writeCallScreenOpen(open: boolean): void {
   try {
-    if (open) window.sessionStorage.setItem(CALL_SCREEN_KEY, "1");
-    else window.sessionStorage.removeItem(CALL_SCREEN_KEY);
+    window.sessionStorage.setItem(CALL_SCREEN_KEY, open ? "1" : "0");
   } catch {
     // Storage can be unavailable (private mode); the screen just won't persist.
   }
+}
+
+export type CallReadiness =
+  | { readonly kind: "ready" }
+  | { readonly kind: "setup" }
+  | { readonly kind: "unavailable"; readonly reason: string };
+
+/** Why a call can't start yet, so the call screen can say so instead of greying out. */
+export function callReadiness(input: {
+  readonly available: boolean;
+  readonly destinationChosen: boolean;
+  readonly unsupportedReason: string | null;
+}): CallReadiness {
+  if (input.available) return { kind: "ready" };
+  if (!input.destinationChosen) return { kind: "setup" };
+  return {
+    kind: "unavailable",
+    reason:
+      input.unsupportedReason ??
+      "Voice isn't ready on this device yet. Check the microphone permission and Voice settings.",
+  };
 }
