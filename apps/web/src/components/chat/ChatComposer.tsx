@@ -237,7 +237,13 @@ import {
   getComposerReasoningStep,
   resolveMentionTargetOptions,
 } from "./composerProviderState";
-import { resolveLastAgentSelection, autoRoute, useComposerNoteModeStore } from "./composerNoteMode";
+import {
+  autoRoute,
+  COUNCIL_HINT,
+  resolveLastAgentSelection,
+  useComposerAgentPickStore,
+  useComposerNoteModeStore,
+} from "./composerNoteMode";
 import { readPromptUltrathink } from "./TraitsPicker";
 import { useApplyThreadModelPick } from "./useApplyThreadModelPick";
 import {
@@ -1041,12 +1047,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     (state) => state.noteThreadKeys[noteThreadKey] === true,
   );
   const toggleNoteMode = useComposerNoteModeStore((state) => state.toggle);
+  const agentPick = useComposerAgentPickStore((state) => state.picks[noteThreadKey] ?? null);
+  const setAgentPick = useComposerAgentPickStore((state) => state.set);
   const lastAgentSelection =
     multipleModelSelections === null
       ? resolveLastAgentSelection({
           runs: activeThreadRuns,
           noteMode,
           route: autoRoute(prompt, routableProviderInstanceEntries, selectedModelSelection),
+          pick: agentPick,
           isRoutable: (selection) =>
             routableProviderInstanceEntries.some(
               (entry) => entry.instanceId === selection.instanceId,
@@ -1986,6 +1995,16 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     };
   };
   const readComposerSnapshotStable = useStableCallback(readComposerSnapshot);
+  // Everyone answers in turn and Claude, last, sums up; the hint tells them so.
+  const startCouncilDraft = () => {
+    const snapshot = readComposerSnapshot();
+    const body = snapshot.value.replace(/^@all\s*/, "").replace(`\n\n${COUNCIL_HINT}`, "");
+    applyPromptReplacement(0, snapshot.value.length, `@all ${body}\n\n${COUNCIL_HINT}`, {
+      expectedText: snapshot.value,
+      focusEditorAfterReplace: true,
+    });
+    setComposerCursor(`@all ${body}`.length);
+  };
 
   const dictationDisabled =
     !canOperateThread ||
@@ -2727,6 +2746,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       worktreeNeedsMention={worktreeNeedsMention}
       noteMode={noteMode}
       noteToggleVisible={multipleModelSelections === null}
+      agentPick={agentPick}
+      onPickAgent={(pick) => setAgentPick(noteThreadKey, pick)}
+      onPickEveryone={startCouncilDraft}
       onToggleNoteMode={() => toggleNoteMode(noteThreadKey)}
     />
   );

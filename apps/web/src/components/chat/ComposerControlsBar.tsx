@@ -4,6 +4,7 @@ import type { ProviderInstanceEntry } from "../../providerInstances";
 import { type AppModelOption } from "../../modelSelection";
 import { CircleAlertIcon, StickyNoteIcon } from "lucide-react";
 import { CompactComposerControlsMenu } from "./CompactComposerControlsMenu";
+import { ComposerAgentPicker } from "./ComposerAgentPicker";
 import { ComposerControl } from "./ComposerControl";
 import {
   ComposerFooterModeControls,
@@ -109,6 +110,10 @@ export function ComposerControlsBar(props: {
   /** Only a channel that has talked to an agent has something to switch away from. */
   noteToggleVisible: boolean;
   onToggleNoteMode: () => void;
+  /** The agent the user picked for this channel; null routes each message automatically. */
+  agentPick: ModelSelection | null;
+  onPickAgent: (pick: ModelSelection | null) => void;
+  onPickEveryone: () => void;
 }) {
   const {
     environmentId,
@@ -160,6 +165,9 @@ export function ComposerControlsBar(props: {
     noteMode,
     noteToggleVisible,
     onToggleNoteMode,
+    agentPick,
+    onPickAgent,
+    onPickEveryone,
   } = props;
   const accessMatchesDefault = compatibleRuntimeMode === defaultRuntimeMode;
   const {
@@ -345,7 +353,15 @@ export function ComposerControlsBar(props: {
       data-composer-routing-target={routingTarget ? "true" : "false"}
       className="ms-1 flex min-w-0 max-w-72 shrink items-center"
     >
-      {routingStatus}
+      <ComposerAgentPicker
+        entries={providerInstanceEntries}
+        modelOptionsByInstance={modelOptionsByInstance}
+        pick={agentPick}
+        onPick={onPickAgent}
+        onEveryone={onPickEveryone}
+      >
+        {routingStatus}
+      </ComposerAgentPicker>
     </div>
   );
   const noteToggle = noteToggleVisible ? (

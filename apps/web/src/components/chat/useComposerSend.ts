@@ -1,4 +1,5 @@
 import { isClearComposerCommand, parseSideChatCommand } from "@t3tools/shared/composerTrigger";
+import { claudeLast } from "./composerNoteMode";
 import { armFreshSession, disarmFreshSession, readFreshSessionArm } from "./freshSessionArms";
 import {
   mergeDirectPreviewAnnotation,
@@ -877,7 +878,14 @@ export function useComposerSend(input: ComposerSendInput) {
     const mentionedTargets =
       routingInput === null
         ? []
-        : resolvePromptProviderTargets(routingInput).filter((target) => target.switchedByMention);
+        : claudeLast(
+            resolvePromptProviderTargets(routingInput).filter((target) => target.switchedByMention),
+            (selection) =>
+              providerInstanceEntries.some(
+                (entry) =>
+                  entry.instanceId === selection.instanceId && entry.driverKind === "claudeAgent",
+              ),
+          );
     const promptProviderRouting =
       routingInput === null
         ? null

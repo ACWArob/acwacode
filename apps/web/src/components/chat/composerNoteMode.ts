@@ -18,9 +18,37 @@ export const useComposerNoteModeStore = create<{
     }),
 }));
 
+/** Agents the user picked for a channel from the composer; in memory, like note mode. */
+export const useComposerAgentPickStore = create<{
+  readonly picks: Readonly<Record<string, ModelSelection>>;
+  readonly set: (threadKey: string, pick: ModelSelection | null) => void;
+}>((set) => ({
+  picks: {},
+  set: (threadKey, pick) =>
+    set(({ picks }) => {
+      if (pick) return { picks: { ...picks, [threadKey]: pick } };
+      const { [threadKey]: _removed, ...rest } = picks;
+      return { picks: rest };
+    }),
+}));
+
+export const COUNCIL_HINT =
+  "(Council: answer in turn and respond to the earlier answers. Claude speaks last and sums up what the group decided.)";
+
+/** In a council, Claude answers last so it can sum up what the others said. */
+export function claudeLast<T extends { readonly modelSelection: ModelSelection }>(
+  targets: ReadonlyArray<T>,
+  isClaude: (selection: ModelSelection) => boolean,
+): ReadonlyArray<T> {
+  return [
+    ...targets.filter((target) => !isClaude(target.modelSelection)),
+    ...targets.filter((target) => isClaude(target.modelSelection)),
+  ];
+}
+
 /**
  * Who a message without an @mention goes to, unless the user switched to notes (null posts a
- * note): a clear topic picks its paid agent, a follow-up stays with the channel's last agent, and
+ * note): the agent the user picked, else a clear topic picks its paid agent, a follow-up stays with the channel's last agent, and
  * anything else goes to the general pick (Opus).
  */
 export function resolveLastAgentSelection(input: {
@@ -28,8 +56,10 @@ export function resolveLastAgentSelection(input: {
   readonly noteMode: boolean;
   readonly isRoutable: (selection: ModelSelection) => boolean;
   readonly route: AutoRoute;
+  readonly pick: ModelSelection | null;
 }): ModelSelection | null {
   if (input.noteMode) return null;
+  if (input.pick && input.isRoutable(input.pick)) return input.pick;
   if (input.route.topic) return input.route.topic.selection;
   const latest = input.runs.reduce<(typeof input.runs)[number] | null>(
     (best, run) => (best === null || run.ordinal > best.ordinal ? run : best),

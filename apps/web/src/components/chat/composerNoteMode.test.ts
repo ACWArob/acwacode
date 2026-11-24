@@ -3,7 +3,12 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { VOICE_CALL_HINT } from "~/speech/voiceCall.logic";
 
-import { autoRoute, resolveLastAgentSelection, type AutoRoute } from "./composerNoteMode";
+import {
+  autoRoute,
+  claudeLast,
+  resolveLastAgentSelection,
+  type AutoRoute,
+} from "./composerNoteMode";
 
 const claude: ModelSelection = {
   instanceId: ProviderInstanceId.make("claudeAgent"),
@@ -32,6 +37,13 @@ describe("resolveLastAgentSelection", () => {
       codex,
     ],
     ["a note with nothing to route to", {}, null],
+    ["the picked agent over a clear topic", { runs, route: topicCodex, pick: claude }, claude],
+    [
+      "the topic when the picked agent is gone",
+      { route: topicCodex, pick: claude, isRoutable: (s) => s === codex },
+      codex,
+    ],
+    ["a note while note mode is on, even with a pick", { noteMode: true, pick: claude }, null],
     [
       "a note while note mode is on, whatever the topic",
       { runs, noteMode: true, route: topicCodex },
@@ -44,6 +56,7 @@ describe("resolveLastAgentSelection", () => {
         noteMode: false,
         isRoutable: () => true,
         route: noRoute,
+        pick: null,
         ...override,
       }),
     ).toEqual(expected);
@@ -94,5 +107,19 @@ describe("autoRoute", () => {
     const withoutCodex = entries.filter((candidate) => candidate.driverKind !== "codex");
     expect(pick("fix the bug", withoutCodex).topic).toBeNull();
     expect(pick("fix the bug", [entry("codex", "codex", ["gpt-5.5"])]).general).toBe("gpt-5.5");
+  });
+});
+
+describe("claudeLast", () => {
+  it("moves Claude to the end and keeps the others in order", () => {
+    const gemini: ModelSelection = {
+      instanceId: ProviderInstanceId.make("antigravity"),
+      model: "g",
+    };
+    const order = claudeLast(
+      [{ modelSelection: claude }, { modelSelection: codex }, { modelSelection: gemini }],
+      (selection) => selection.instanceId === claude.instanceId,
+    ).map((target) => target.modelSelection.instanceId);
+    expect(order).toEqual(["codex", "antigravity", "claudeAgent"]);
   });
 });
