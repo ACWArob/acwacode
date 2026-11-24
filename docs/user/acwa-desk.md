@@ -82,6 +82,13 @@ doing everything yourself:
 
 Then ask Opus for "full force" in any channel.
 
+### Browser executor
+
+Claude plans browser work, and a cheap open model does the clicking. Give OpenCode a Playwright `browser`
+tool and executor instructions (see [agent setup](./agent-setup/README.md)), and add the browser executor
+rule to your full force section. Claude then sends one step at a time ("fill these fields with these
+values", "extract these rows"), reads the report, and decides the next step.
+
 ### Skills
 
 Agents work better with skills, folders of instructions they load when a task matches. acwa desk

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/deepseek/deepseek-v4.1-flash",
+  "small_model": "openrouter/qwen/qwen3.8-flash",
+  "mcp": {
+    "browser": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chrome",
+        "--user-data-dir",
+        "/Users/YOU/.acwa-browser"
+      ],
+      "enabled": true
+    }
+  },
+  "provider": {
+    "openrouter": {
+      "models": {
+        "deepseek/deepseek-v4.1-flash": {
+          "limit": {
+            "context": 200000,
+            "output": 8192
+          }
+        },
+        "qwen/qwen3.8-flash": {
+          "limit": {
+            "context": 200000,
+            "output": 8192
+          }
+        },
+        "nvidia/nemotron-3.5-super-vl:free": {
+          "limit": {
+            "context": 200000,
+            "output": 8192
+          }
+        }
+      }
+    }
+  }
+}
