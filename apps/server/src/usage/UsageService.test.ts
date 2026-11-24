@@ -1089,7 +1089,7 @@ describe("UsageService", () => {
   );
 
   it.effect(
-    "discovers Antigravity ACP history in ~/.gemini/antigravity-acp and managed profiles including child sessions",
+    "discovers Antigravity ACP history in ~/.gemini/antigravity-acp, managed profiles and Gemini CLI chats including child sessions",
     () =>
       Effect.gen(function* () {
         const { home } = yield* setup;
@@ -1150,6 +1150,29 @@ describe("UsageService", () => {
           await writeStepDb(NodePath.join(defaultAcpConversations, "default-acp-turn.db"), 13);
           await writeStepDb(NodePath.join(managedConversations, "parent-session.db"), 17);
           await writeStepDb(NodePath.join(managedConversations, "child-session.db"), 19);
+          const geminiCliChats = NodePath.join(home, ".gemini", "tmp", "project", "chats");
+          const geminiCliSession = (sessionId: string, output: number) =>
+            [
+              { sessionId, projectHash: "project", startTime: "2026-08-01T10:00:00.000Z" },
+              {
+                id: `${sessionId}-reply`,
+                timestamp: "2026-08-01T10:00:00.000Z",
+                type: "gemini",
+                tokens: { input: 100, output, cached: 0, thoughts: 0, tool: 0 },
+                model: "gemini-2.5-pro",
+              },
+            ]
+              .map((line) => JSON.stringify(line) + "\n")
+              .join("");
+          await NodeFSP.mkdir(NodePath.join(geminiCliChats, "cli-parent"), { recursive: true });
+          await NodeFSP.writeFile(
+            NodePath.join(geminiCliChats, "session-2026-08-01T10-00-cliparen.jsonl"),
+            geminiCliSession("cli-parent", 23),
+          );
+          await NodeFSP.writeFile(
+            NodePath.join(geminiCliChats, "cli-parent", "cli-child.jsonl"),
+            geminiCliSession("cli-child", 29),
+          );
         });
         const service = yield* UsageService.make.pipe(
           Effect.provide(
@@ -1172,12 +1195,12 @@ describe("UsageService", () => {
         const totalOutput = summary.buckets
           .filter((bucket) => bucket.provider === "antigravity")
           .reduce((sum, bucket) => sum + bucket.totals.outputTokens, 0);
-        assert.strictEqual(totalOutput, 13 + 17 + 19);
+        assert.strictEqual(totalOutput, 13 + 17 + 19 + 23 + 29);
         const distinctSessions = agSources.reduce(
           (sum, source) => sum + source.distinctSessions,
           0,
         );
-        assert.strictEqual(distinctSessions, 3);
+        assert.strictEqual(distinctSessions, 5);
       }),
   );
 

@@ -5,6 +5,7 @@ import {
 import { AntigravityDriver, type AntigravityDriverEnv } from "./Drivers/AntigravityDriver.ts";
 import { ClaudeDriver, type ClaudeDriverEnv } from "./Drivers/ClaudeDriver.ts";
 import { CodexDriver, type CodexDriverEnv } from "./Drivers/CodexDriver.ts";
+import { geminiCliUsageReader } from "./Drivers/geminiCliUsage.ts";
 import { FxDriver, type FxDriverEnv } from "@t3tools/provider-fx/server";
 import { GrokDriver, type GrokDriverEnv } from "@t3tools/provider-grok/server";
 import type {
@@ -41,4 +42,11 @@ export type BuiltInUsageReadersEnv =
 /** Order matters: aggregation keeps the first duplicate record. */
 export const BUILT_IN_USAGE_DRIVERS: ReadonlyArray<
   AnyProviderDriver<BuiltInDriversEnv, BuiltInUsageReadersEnv>
-> = [ClaudeDriver, CodexDriver, GrokDriver, AntigravityDriver];
+> = [
+  ClaudeDriver,
+  CodexDriver,
+  GrokDriver,
+  AntigravityDriver,
+  // Standalone Gemini CLI history has no driver; it counts with Antigravity as Gemini.
+  { ...AntigravityDriver, usage: geminiCliUsageReader },
+];

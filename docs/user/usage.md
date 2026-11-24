@@ -23,6 +23,7 @@ the totals for Codex or Claude Code 2.0.63 and newer, because those runs save no
 Antigravity reads local conversation databases, including T3-managed profiles. Set
 `ANTIGRAVITY_DATA_DIR` on the server to read a different data directory; comma-separated paths read
 multiple directories. T3 does not estimate missing tokens from conversation text.
+Standalone Gemini CLI sessions in `~/.gemini/tmp` (or under `GEMINI_CLI_HOME`) also count as Gemini.
 
 Usage includes each configured account's history, including disabled accounts. Custom homes follow
 the account's home setting or its `CODEX_HOME`, `CLAUDE_CONFIG_DIR`, or `GROK_HOME` environment
