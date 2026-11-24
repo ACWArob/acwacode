@@ -229,7 +229,7 @@ import {
   getComposerReasoningStep,
   resolveMentionTargetOptions,
 } from "./composerProviderState";
-import { resolveLastAgentSelection, useComposerNoteModeStore } from "./composerNoteMode";
+import { resolveLastAgentSelection, autoRoute, useComposerNoteModeStore } from "./composerNoteMode";
 import { readPromptUltrathink } from "./TraitsPicker";
 import { useApplyThreadModelPick } from "./useApplyThreadModelPick";
 import {
@@ -1036,6 +1036,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ? resolveLastAgentSelection({
           runs: activeThreadRuns,
           noteMode,
+          route: autoRoute(prompt, routableProviderInstanceEntries, selectedModelSelection),
           isRoutable: (selection) =>
             routableProviderInstanceEntries.some(
               (entry) => entry.instanceId === selection.instanceId,
@@ -2706,7 +2707,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       modelPickerVisible={multipleModelSelections !== null}
       worktreeNeedsMention={worktreeNeedsMention}
       noteMode={noteMode}
-      noteToggleVisible={multipleModelSelections === null && activeThreadRuns.length > 0}
+      noteToggleVisible={multipleModelSelections === null}
       onToggleNoteMode={() => toggleNoteMode(noteThreadKey)}
     />
   );

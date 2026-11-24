@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  callActivity,
   END_OF_TURN_SILENCE_MS,
   MAX_TURN_MS,
   repliesToSpeak,
@@ -118,5 +119,48 @@ describe("voiceProfileFor", () => {
     expect(
       voiceProfileFor("opencode openrouter/deepseek/deepseek-v4.1-flash").pitch,
     ).toBeGreaterThan(1.4);
+  });
+});
+
+describe("callActivity", () => {
+  it("turns turn items into short lines, newest last", () => {
+    expect(
+      callActivity([
+        { id: "1", runId: "r", type: "command_execution", input: "vp test run\n  apps/web" },
+        {
+          id: "2",
+          runId: "r",
+          type: "file_change",
+          fileName: "src/a.ts",
+          additions: 3,
+          deletions: 1,
+        },
+        { id: "3", runId: "r", type: "dynamic_tool", toolName: "mcp__t3-code__preview_snapshot" },
+        {
+          id: "4",
+          runId: "r",
+          type: "subagent",
+          driver: "codex",
+          prompt: "Fix the test",
+          progress: "running",
+        },
+        { id: "5", runId: "r", type: "assistant_message" },
+      ]).map((row) => row.text),
+    ).toEqual([
+      "vp test run apps/web",
+      "Edited src/a.ts (+3 −1)",
+      "preview snapshot",
+      "codex: Fix the test (running)",
+    ]);
+  });
+
+  it("keeps only the latest rows", () => {
+    const items = Array.from({ length: 12 }, (_, index) => ({
+      id: String(index),
+      runId: null,
+      type: "command_execution",
+      input: `step ${index}`,
+    }));
+    expect(callActivity(items, 3).map((row) => row.text)).toEqual(["step 9", "step 10", "step 11"]);
   });
 });

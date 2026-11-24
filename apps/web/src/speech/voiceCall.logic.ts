@@ -131,3 +131,77 @@ export function voiceProfileFor(speaker: string): VoiceProfile {
   if (/codex|gpt|openai/.test(key)) return VOICE_PROFILES.gpt;
   return VOICE_PROFILES.claude;
 }
+
+export interface CallActivityItem {
+  readonly id: string;
+  readonly type: string;
+  readonly runId: string | null;
+  readonly input?: unknown;
+  readonly fileName?: string;
+  readonly additions?: number;
+  readonly deletions?: number;
+  readonly patterns?: ReadonlyArray<string>;
+  readonly toolName?: string | null;
+  readonly driver?: string;
+  readonly prompt?: string;
+  readonly progress?: string;
+  readonly viewedImagePath?: string;
+}
+
+export interface CallActivityRow {
+  readonly id: string;
+  readonly runId: string | null;
+  readonly kind: "command" | "file" | "search" | "tool" | "agent" | "image";
+  readonly text: string;
+}
+
+const oneLine = (text: string, max = 90) => {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+};
+
+/** The latest things the agents did, newest last, as short lines for the call screen. */
+export function callActivity(
+  items: ReadonlyArray<CallActivityItem>,
+  limit = 8,
+): ReadonlyArray<CallActivityRow> {
+  const rows: CallActivityRow[] = [];
+  for (const item of items) {
+    const base = { id: item.id, runId: item.runId };
+    if (item.type === "command_execution" && typeof item.input === "string") {
+      rows.push({ ...base, kind: "command", text: oneLine(item.input) });
+    } else if (item.type === "file_change" && item.fileName) {
+      const counts =
+        item.additions !== undefined || item.deletions !== undefined
+          ? ` (+${item.additions ?? 0} −${item.deletions ?? 0})`
+          : "";
+      rows.push({ ...base, kind: "file", text: `Edited ${item.fileName}${counts}` });
+    } else if (item.type === "web_search") {
+      rows.push({
+        ...base,
+        kind: "search",
+        text: oneLine(`Searched ${item.patterns?.join(", ") ?? "the web"}`),
+      });
+    } else if (item.type === "subagent" && item.prompt) {
+      const status = item.progress ? ` (${item.progress})` : "";
+      rows.push({
+        ...base,
+        kind: "agent",
+        text: oneLine(`${item.driver ?? "Agent"}: ${item.prompt}${status}`),
+      });
+    } else if (item.type === "dynamic_tool" && item.viewedImagePath) {
+      rows.push({
+        ...base,
+        kind: "image",
+        text: `Looked at ${item.viewedImagePath.split("/").pop()}`,
+      });
+    } else if (item.type === "dynamic_tool" && item.toolName) {
+      rows.push({
+        ...base,
+        kind: "tool",
+        text: oneLine(item.toolName.replace(/^mcp__[^_]+__/, "").replaceAll("_", " ")),
+      });
+    }
+  }
+  return rows.slice(-limit);
+}

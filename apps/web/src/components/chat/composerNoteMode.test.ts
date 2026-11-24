@@ -1,7 +1,7 @@
-import { ProviderInstanceId, type ModelSelection } from "@t3tools/contracts";
+import { ProviderDriverKind, ProviderInstanceId, type ModelSelection } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { resolveLastAgentSelection } from "./composerNoteMode";
+import { autoRoute, resolveLastAgentSelection, type AutoRoute } from "./composerNoteMode";
 
 const claude: ModelSelection = {
   instanceId: ProviderInstanceId.make("claudeAgent"),
@@ -13,16 +13,83 @@ const runs = [
   { ordinal: 2, modelSelection: claude },
   { ordinal: 1, modelSelection: codex },
 ];
+const noRoute: AutoRoute = { topic: null, general: null };
+const generalCodex: AutoRoute = { topic: null, general: codex };
+const topicCodex: AutoRoute = { topic: { reason: "code", selection: codex }, general: null };
 
 describe("resolveLastAgentSelection", () => {
-  it.each([
+  it.each<
+    [string, Partial<Parameters<typeof resolveLastAgentSelection>[0]>, ModelSelection | null]
+  >([
     ["the latest run's agent, with its effort", { runs }, claude],
-    ["a note in a channel that never ran an agent", { runs: [] }, null],
-    ["a note while note mode is on", { runs, noteMode: true }, null],
-    ["a note when the last agent's instance is gone", { runs, isRoutable: () => false }, null],
+    ["a clear topic over the last agent", { runs, route: topicCodex }, codex],
+    ["the general pick in a channel that never ran an agent", { route: generalCodex }, codex],
+    [
+      "the general pick when the last agent is gone",
+      { runs, isRoutable: () => false, route: generalCodex },
+      codex,
+    ],
+    ["a note with nothing to route to", {}, null],
+    [
+      "a note while note mode is on, whatever the topic",
+      { runs, noteMode: true, route: topicCodex },
+      null,
+    ],
   ])("%s", (_name, override, expected) => {
     expect(
-      resolveLastAgentSelection({ noteMode: false, isRoutable: () => true, ...override }),
+      resolveLastAgentSelection({
+        runs: [],
+        noteMode: false,
+        isRoutable: () => true,
+        route: noRoute,
+        ...override,
+      }),
     ).toEqual(expected);
+  });
+});
+
+describe("autoRoute", () => {
+  const entry = (instanceId: string, driverKind: string, slugs: string[], isAvailable = true) => ({
+    instanceId: ProviderInstanceId.make(instanceId),
+    driverKind: ProviderDriverKind.make(driverKind),
+    isAvailable,
+    models: slugs.map((slug) => ({ slug })),
+  });
+  const entries = [
+    entry("claudeAgent", "claudeAgent", [
+      "claude-opus-5-5",
+      "claude-sonnet-5-5",
+      "claude-haiku-5-5",
+    ]),
+    entry("codex", "codex", ["gpt-5.5"]),
+    entry("antigravity", "antigravity", ["antigravity-default"]),
+    entry("opencode", "acpRegistry", [
+      "openrouter/qwen/qwen3",
+      "openrouter/deepseek/deepseek-v4.1-flash",
+    ]),
+  ];
+  const pick = (prompt: string, list = entries) => {
+    const route = autoRoute(prompt, list, codex);
+    return { topic: route.topic?.selection.model ?? null, general: route.general?.model ?? null };
+  };
+
+  it.each([
+    ["fix the failing test in the parser", "gpt-5.5"],
+    ["what's the latest news on humanoid robots", "antigravity-default"],
+    ["scrape the prices off this website", "openrouter/deepseek/deepseek-v4.1-flash"],
+    ["help me plan the semester project", null],
+    ["thanks!", null],
+  ])("%s → %s", (prompt, topic) => {
+    expect(pick(prompt).topic).toBe(topic);
+  });
+
+  it("sends everything else to Opus", () => {
+    expect(pick("hey what's up").general).toBe("claude-opus-5-5");
+  });
+
+  it("skips agents that aren't available", () => {
+    const withoutCodex = entries.filter((candidate) => candidate.driverKind !== "codex");
+    expect(pick("fix the bug", withoutCodex).topic).toBeNull();
+    expect(pick("fix the bug", [entry("codex", "codex", ["gpt-5.5"])]).general).toBe("gpt-5.5");
   });
 });
