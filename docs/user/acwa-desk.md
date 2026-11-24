@@ -93,7 +93,8 @@ agents read them from `~/.claude/skills` (Claude), `~/.agents/skills` (Codex and
 
 For tasks that must get done, add a `brute-force` skill: it makes the agent define a checkable
 "done", then keep rotating approaches, agents and tools you already have until the check passes,
-the same idea as the Ralph loop. It doesn't go looking for new outside tools and has no attempt cap. Say "brute force" in a message to use it. It still stops
+the same idea as the Ralph loop, with no attempt cap. "Brute force" uses only what's set up;
+"brute force external" may also find and install tools from GitHub or the web. Say either phrase in a message to use it. It still stops
 for passwords, CAPTCHAs, irreversible actions and expensive models, and asks you.
 
 Add lines to your full force section so the lead names the right skill in each delegated task,
