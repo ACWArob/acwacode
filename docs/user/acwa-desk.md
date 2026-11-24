@@ -92,8 +92,8 @@ agents read them from `~/.claude/skills` (Claude), `~/.agents/skills` (Codex and
 `receiving-code-review` and `writing-plans`. Copy each skill's folder into those directories.
 
 For tasks that must get done, add a `brute-force` skill: it makes the agent define a checkable
-"done", then loop through different approaches, agents, tools and GitHub projects until the check
-passes, the same idea as the Ralph loop. Say "brute force" in a message to use it. It still stops
+"done", then keep rotating approaches, agents and tools you already have until the check passes,
+the same idea as the Ralph loop. It doesn't go looking for new outside tools and has no attempt cap. Say "brute force" in a message to use it. It still stops
 for passwords, CAPTCHAs, irreversible actions and expensive models, and asks you.
 
 Add lines to your full force section so the lead names the right skill in each delegated task,
@@ -205,6 +205,16 @@ The board can show chats from other projects next to the current one, each with 
 A card from another project shows that project's name in its header. Clicking its title, or
 **Focus**, opens the chat in its own project, and the board you left keeps its layout. The split
 belongs to the current project's board, like any other layout.
+
+## Study mode
+
+Ask an agent to quiz you and it shows the questions in the chat, one at a time. There are four
+kinds: flashcards, multiple choice, short written (a sentence or three), and long written (a
+paragraph or essay). Ask for a kind by name, or let the agent pick; it prefers written questions
+when the topic needs explaining. Written questions have a **Hint** button that reveals one hint at
+a time, and **Show answer** for when you give up. **Submit for grading** sends your answer and the
+rubric to the same chat as your message, and the agent replies with a score per criterion and one
+thing to improve. If the chat has no thread yet, the text lands in the composer for you to send.
 
 ## Install as a Mac app
 
