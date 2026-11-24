@@ -106,6 +106,14 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
 // The server switches only while the limit holds and within a day of the failure.
 const SWITCH_WINDOW_MS = 24 * 60 * 60 * 1000;
 
+function switchWindowEnd(resetAt: string | null, stoppedAt: string): number {
+  const resetMs = resetAt === null ? Number.NaN : Date.parse(resetAt);
+  return Math.min(
+    Number.isFinite(resetMs) ? resetMs : Infinity,
+    Date.parse(stoppedAt) + SWITCH_WINDOW_MS,
+  );
+}
+
 function RecoveryActions({
   runId,
   resetAt,
@@ -117,13 +125,7 @@ function RecoveryActions({
   onChange,
 }: RecoveryProps & { canSchedule: boolean }) {
   const [pending, setPending] = useState(false);
-  const resetMs = resetAt === null ? Number.NaN : Date.parse(resetAt);
-  const switchWindowPassed = useDeadlinePassed(
-    Math.min(
-      Number.isFinite(resetMs) ? resetMs : Infinity,
-      Date.parse(stoppedAt) + SWITCH_WINDOW_MS,
-    ),
-  );
+  const switchWindowPassed = useDeadlinePassed(switchWindowEnd(resetAt, stoppedAt));
   const snoozeEnded = useDeadlinePassed(snoozedUntil === null ? null : Date.parse(snoozedUntil));
 
   const scheduled =
