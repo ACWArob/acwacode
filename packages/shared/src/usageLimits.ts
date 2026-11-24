@@ -115,7 +115,7 @@ export const CHATGPT_WORKSPACE_USAGE_LIMIT_CODE =
   "subscription_sharing_workplace_individual_usage_limit_exceeded";
 /** OpenAI's partner guidelines fix this wording; the user sends it to their admin themselves. */
 export const CHATGPT_WORKSPACE_ADMIN_REQUEST =
-  "I've reached the limit for using my ChatGPT plan in T3 Code. Could you increase our workspace's usage limits so I can continue?\n\nGo to admin.openai.com → Workspace → Usage limits. Thank you!";
+  "I've reached the limit for using my ChatGPT plan in acwa desk. Could you increase our workspace's usage limits so I can continue?\n\nGo to admin.openai.com → Workspace → Usage limits. Thank you!";
 
 export function usesChatGptSharing(provider: ServerProvider | null | undefined): boolean {
   return provider?.auth.status === "authenticated" && provider.auth.subscriptionSharing === true;
@@ -407,6 +407,27 @@ export function collectLimitNotices(presentations: LimitPresentations): readonly
     }
   }
   return [...notices];
+}
+
+/** Drivers that report limits but have none usable and no pool, so the page names them instead of dropping them. */
+export function collectUnreportedLimitDrivers(
+  presentations: LimitPresentations,
+  pools: readonly LimitPool[],
+): ReadonlyArray<{ readonly driver: ServerProvider["driver"]; readonly message: string | null }> {
+  const pooled = new Set(pools.map((pool) => pool.driver));
+  const unreported = new Map<ServerProvider["driver"], string | null>();
+  for (const presentation of presentations.values()) {
+    for (const provider of providersWithLimits(presentation.serverConfig?.providers ?? [])) {
+      const limits = provider.usageLimits;
+      if (!limits || pooled.has(provider.driver) || limits.externalUsage) continue;
+      if (limitsNotice(limits) === null) continue;
+      // Probe failures already appear as notices; unsupported reasons appear nowhere else.
+      const message =
+        limits.unavailable?.reason === "unsupported" ? (limits.unavailable.message ?? null) : null;
+      unreported.set(provider.driver, unreported.get(provider.driver) ?? message);
+    }
+  }
+  return [...unreported].map(([driver, message]) => ({ driver, message }));
 }
 
 export interface LimitPoolMember {

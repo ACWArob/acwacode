@@ -1,6 +1,16 @@
+import { ProviderDriverKind } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import { rankProvidersByMetric } from "./usageProviders";
+import { rankProvidersByMetric, usageDriverLabel } from "./usageProviders";
+
+describe("usageDriverLabel", () => {
+  it("names Antigravity limits Gemini, apart from Codex, and falls back for drivers without usage", () => {
+    expect(usageDriverLabel(ProviderDriverKind.make("antigravity"))).toBe("Gemini");
+    expect(usageDriverLabel(ProviderDriverKind.make("codex"))).toBe("Codex");
+    expect(usageDriverLabel(ProviderDriverKind.make("claudeAgent"))).toBe("Claude Code");
+    expect(usageDriverLabel(ProviderDriverKind.make("not-a-driver"))).toBe("not-a-driver");
+  });
+});
 
 describe("rankProvidersByMetric", () => {
   it("ranks by the selected metric, highest first", () => {

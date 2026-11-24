@@ -2,6 +2,7 @@ import type { UsageProviderKind } from "@t3tools/contracts";
 
 import { ProviderDriverKind } from "@t3tools/contracts";
 
+import { providerClients } from "../settings/providerDriverMeta";
 import type { UsageMetric } from "./usageShortcuts";
 
 type UsageProviderPresentation = {
@@ -32,8 +33,9 @@ export const PROVIDER_PRESENTATION = {
     color: "#5b9bbd",
     driverKind: ProviderDriverKind.make("opencode"),
   },
+  // Antigravity is how this app runs Gemini; users look for the model, not the harness.
   antigravity: {
-    label: "Antigravity",
+    label: "Gemini",
     color: "#8c7bd1",
     driverKind: ProviderDriverKind.make("antigravity"),
   },
@@ -50,6 +52,14 @@ export const PROVIDER_PRESENTATION = {
 } satisfies Record<UsageProviderKind, UsageProviderPresentation>;
 
 export const PROVIDER_ORDER = Object.keys(PROVIDER_PRESENTATION) as UsageProviderKind[];
+
+export function driverPresentation(driver: ProviderDriverKind) {
+  return Object.values(PROVIDER_PRESENTATION).find((entry) => entry.driverKind === driver);
+}
+
+export function usageDriverLabel(driver: ProviderDriverKind): string {
+  return driverPresentation(driver)?.label ?? providerClients.get(driver)?.label ?? String(driver);
+}
 
 export function providersWithUsage(
   totals: readonly {

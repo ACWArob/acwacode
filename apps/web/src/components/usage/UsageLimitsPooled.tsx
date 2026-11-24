@@ -4,6 +4,7 @@ import {
   collectExternalUsageLinks,
   collectLimitNotices,
   collectLimitPools,
+  collectUnreportedLimitDrivers,
   displayLimitWindows,
   formatResetsIn,
   type LimitAccount,
@@ -34,13 +35,13 @@ import { usePrimarySettings } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
-import { providerClients } from "../settings/providerDriverMeta";
 import { RedactedSensitiveText } from "../settings/RedactedSensitiveText";
 import { Button } from "../ui/button";
 import { OpenAI } from "../Icons";
 import { Alert, AlertTitle } from "../ui/alert";
 import { Popover, PopoverCreateHandle, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { PaceIcon, ResetCreditDialog, barColor, usePaceMark, useResetCredit } from "./UsageLimits";
+import { usageDriverLabel } from "./usageProviders";
 
 function accountInitials(email: string): string {
   const [local = "", domain = ""] = email.split("@");
@@ -80,11 +81,7 @@ function AccountAvatar({
     return (
       <ProviderInstanceIcon
         driverKind={account.driver}
-        displayName={
-          account.displayName ??
-          providerClients.get(account.driver)?.label ??
-          String(account.driver)
-        }
+        displayName={account.displayName ?? usageDriverLabel(account.driver)}
         accentColor={account.accentColor}
         showBadge={Boolean(account.displayName)}
         indicatorBackground="var(--popover)"
@@ -111,11 +108,7 @@ function AccountName({
       </span>
     );
   }
-  return (
-    <span className={className}>
-      {providerClients.get(account.driver)?.label ?? String(account.driver)}
-    </span>
-  );
+  return <span className={className}>{usageDriverLabel(account.driver)}</span>;
 }
 
 function Row({ label, children }: { readonly label: string; readonly children: ReactNode }) {
@@ -160,7 +153,7 @@ function SegmentPopover({
         <span className="flex items-center gap-2 text-sm font-medium text-foreground">
           <AccountAvatar account={account} />
           <span className="truncate">
-            {account.displayName ?? providerClients.get(account.driver)?.label ?? account.driver}
+            {account.displayName ?? usageDriverLabel(account.driver)}
           </span>
         </span>
         {account.email ? (
@@ -575,25 +568,51 @@ function PoolWindowCard({
   );
 }
 
+function PoolHeading({ driver }: { readonly driver: LimitPool["driver"] }) {
+  const label = usageDriverLabel(driver);
+  return (
+    <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
+      <ProviderInstanceIcon
+        driverKind={driver}
+        displayName={label}
+        indicatorBackground="var(--background)"
+        className="size-5"
+        iconClassName="size-4 text-foreground/80"
+      />
+      {label}
+    </h2>
+  );
+}
+
 function PoolSection({ pool, now }: { readonly pool: LimitPool; readonly now: number }) {
   const color = barColor(pool.driver);
-  const label = providerClients.get(pool.driver)?.label ?? String(pool.driver);
   const windows = displayLimitWindows(pool);
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <ProviderInstanceIcon
-          driverKind={pool.driver}
-          displayName={label}
-          indicatorBackground="var(--background)"
-          className="size-5"
-          iconClassName="size-4 text-foreground/80"
-        />
-        {label}
-      </h2>
+      <PoolHeading driver={pool.driver} />
       {windows.map((window) => (
         <PoolWindowCard key={`${window.kind}:${window.id}`} pool={window} color={color} now={now} />
       ))}
+    </section>
+  );
+}
+
+function UnreportedSection({
+  driver,
+  message,
+}: {
+  readonly driver: LimitPool["driver"];
+  readonly message: string | null;
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <PoolHeading driver={driver} />
+      <div className="flex flex-col gap-1 rounded-lg border border-border/60 p-4 text-sm text-muted-foreground">
+        <span className="font-medium text-foreground">Limits not reported</span>
+        <span className="text-xs">
+          {message ? `${message} ` : null}Token usage is under Tokens.
+        </span>
+      </div>
     </section>
   );
 }
@@ -608,11 +627,15 @@ export function UsageLimitsPooled({
   const [segmentPopover] = useState(() => PopoverCreateHandle<SegmentPayload>());
   const segmentPopoverActions = useRef<PopoverPrimitive.Root.Actions | null>(null);
   const pools = collectLimitPools(collectLimitAccounts(presentations), now);
+  const unreported = collectUnreportedLimitDrivers(presentations, pools);
   const notices = collectLimitNotices(presentations);
   const externalLinks = collectExternalUsageLinks(presentations);
   return (
     <div className="flex flex-col gap-8">
-      {pools.length === 0 && notices.length === 0 && externalLinks.length === 0 ? (
+      {pools.length === 0 &&
+      unreported.length === 0 &&
+      notices.length === 0 &&
+      externalLinks.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No provider on the selected environments reports subscription limits.
         </p>
@@ -624,6 +647,9 @@ export function UsageLimitsPooled({
           </Fragment>
         ))}
       </SegmentPopoverContext>
+      {unreported.map(({ driver, message }) => (
+        <UnreportedSection key={driver} driver={driver} message={message} />
+      ))}
       <Popover handle={segmentPopover} actionsRef={segmentPopoverActions}>
         {({ payload }) =>
           payload ? (

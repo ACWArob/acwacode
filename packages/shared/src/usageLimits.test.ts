@@ -17,6 +17,7 @@ import {
   collectExternalUsageLinks,
   collectLimitNotices,
   collectLimitPools,
+  collectUnreportedLimitDrivers,
   elapsedShare,
   exhaustedUsageWindow,
   paceOf,
@@ -1709,6 +1710,51 @@ describe("external usage settings", () => {
     ]);
     expect(collectLimitAccounts(presentations)).toEqual([]);
     expect(collectLimitNotices(presentations)).toEqual([]);
+    expect(collectUnreportedLimitDrivers(presentations, [])).toEqual([]);
+  });
+
+  it("names a driver with no usable limits instead of dropping it, without inventing a pool", () => {
+    const checkedAt = "2026-09-03T11:00:00.000Z";
+    const antigravity = ProviderDriverKind.make("antigravity");
+    const claude = ProviderDriverKind.make("claudeAgent");
+    const signedOut = provider({
+      driver: antigravity,
+      instanceId: ProviderInstanceId.make("antigravity"),
+      usageLimits: {
+        checkedAt,
+        windows: [],
+        unavailable: { reason: "unsupported", message: "Sign in with Google." },
+      },
+    });
+    const failing = provider({
+      driver: claude,
+      instanceId: ProviderInstanceId.make("claude-work"),
+      usageLimits: { checkedAt, windows: [], unavailable: { reason: "probeFailed" } },
+    });
+    const pooled = provider({
+      driver: claude,
+      instanceId: ProviderInstanceId.make("claude"),
+      usageLimits: { checkedAt, windows: [window] },
+    });
+    const empty = provider({ usageLimits: { checkedAt, windows: [] } });
+    const on = (providers: ServerProvider[]) =>
+      new Map([
+        [
+          EnvironmentId.make("a"),
+          { entry: { target: { label: "A" } }, serverConfig: { providers } },
+        ],
+      ]);
+    const presentations = on([signedOut, failing, pooled, empty]);
+    const pools = collectLimitPools(collectLimitAccounts(presentations), now);
+
+    expect(pools.map((pool) => pool.driver)).toEqual([claude]);
+    expect(collectUnreportedLimitDrivers(presentations, pools)).toEqual([
+      { driver: antigravity, message: "Sign in with Google." },
+      { driver: ProviderDriverKind.make("codex"), message: null },
+    ]);
+    expect(collectUnreportedLimitDrivers(on([failing]), [])).toEqual([
+      { driver: claude, message: null },
+    ]);
   });
 
   it("shows a notice once when environments with one label report the same failure", () => {

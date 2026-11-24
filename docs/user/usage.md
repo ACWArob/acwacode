@@ -8,7 +8,7 @@ On mobile, choose **Usage** in the workspace navigation.
 
 ## Understand your usage
 
-**Usage** combines Codex, Claude Code, Grok Build, and Antigravity history
+**Usage** combines Codex, Claude Code, Grok Build, and Antigravity (shown as Gemini) history
 from your connected environments. It shows token use, cache savings, model breakdowns, and estimated API-equivalent
 cost, split by token type and by speed. These estimates are not your subscription bill.
 **Premium** is what Fast and Ultrafast requests cost above standard rates. Cost that cannot be
@@ -98,7 +98,7 @@ setting removes it from `settings.json`.
 
 ## Track subscription limits
 
-**Usage → Limits** pools every subscription account it can see per provider, so with several Codex
+**Usage → Plan left** pools every subscription account it can see per provider, so with several Codex
 or Claude accounts across your enabled environments and hubs you read one number per window rather than a
 list. Each window card shows how much of the pool is left and a bar with one segment per account,
 kept in the same column across windows. Accounts are ordered by their next 5-hour refill, soonest
@@ -119,17 +119,17 @@ Filter with the environment dropdown to see what a single machine has.
 When a Claude or Codex account has no overall weekly quota left, its pooled session contribution
 shows 0% left. The next refill depends on both reset times: an exhausted session must also reset,
 and a partly spent session may only regain its unused portion when the week resets. Missing or
-stale reset times have no refill estimate; refresh Limits for a new reading. Claude's
+stale reset times have no refill estimate; refresh Plan left for a new reading. Claude's
 model-specific weekly allowances keep their reported values.
 
-Opening Limits checks the selected connected environments automatically. Each client waits at
+Opening Plan left checks the selected connected environments automatically. Each client waits at
 least five minutes between automatic checks of an environment, including after a failed check.
-If a window still looks stale, refresh Limits to re-check every provider and hub.
+If a window still looks stale, refresh Plan left to re-check every provider and hub.
 
 Pick `/usage-limits` from the composer's command menu, or send it as a message, to check the
 current model's limits without leaving the conversation. The result opens above the composer and
-closes when you dismiss it or send your next message. It uses the same snapshot as **Usage → Limits**, so it does not run the agent or refresh
-anything. The command is offered only for providers that appear under **Usage → Limits**.
+closes when you dismiss it or send your next message. It uses the same snapshot as **Usage → Plan left**, so it does not run the agent or refresh
+anything. The command is offered only for providers that appear under **Usage → Plan left**.
 
 To keep them in view on web and desktop, turn on **Usage limits** in **Settings → Appearance → Thread details**, or right-click the thread details card.
 The bottom of the thread details card then shows how much is left in each limit window of the
@@ -150,7 +150,7 @@ using a proxy through `ANTHROPIC_AUTH_TOKEN`.
 To see pooled accounts, open **Settings → Providers → Usage providers → Add hub**. Choose the
 environment that will connect to the hub and enter its URL and management key.
 
-The hub's Codex, Claude, xAI (shown as Grok) and Antigravity accounts appear under **Usage → Limits**;
+The hub's Codex, Claude, xAI (shown as Grok) and Antigravity (shown as Gemini) accounts appear under **Usage → Plan left**;
 accounts for other providers are not read. Codex accounts show banked reset credits; select an
 account and choose **Use reset** to redeem one. No hub plugin is required.
 
@@ -161,15 +161,15 @@ settings section when you no longer need it.
 ## Subscription usage widget
 
 Add **Subscription usage** from your iOS or Android widget gallery to see remaining Codex and
-Claude quotas. Tap it to open **Usage → Limits**; on Android this works while T3 is running in
+Claude quotas. Tap it to open **Usage → Plan left**; on Android this works while T3 is running in
 the background, otherwise open the app from the launcher. On iOS, use **Edit Widget** to choose
 Session, Weekly, or both for each provider. Reopen T3 to refresh expired readings.
 
 ## Keyboard shortcuts
 
 On web and desktop, open Usage from the command palette. While on Usage,
-press `C`, `T`, or `L` for Cost, Tokens, or Limits while not typing in a field.
+press `C`, `T`, or `L` for API value, Tokens, or Plan left while not typing in a field.
 Use `Ctrl+Shift+1/2/3/4` (`Cmd+Shift+1/2/3/4` on macOS) for the past
-24 hours, 7 days, 30 days, or 90 days. Period shortcuts do nothing on Limits.
+24 hours, 7 days, 30 days, or 90 days. Period shortcuts do nothing on Plan left.
 Press `Escape` to return to the previous page. Customize these shortcuts in
 **Settings → Keybindings**.
