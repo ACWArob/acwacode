@@ -91,6 +91,11 @@ agents read them from `~/.claude/skills` (Claude), `~/.agents/skills` (Codex and
 `test-driven-development`, `verification-before-completion`, `requesting-code-review`,
 `receiving-code-review` and `writing-plans`. Copy each skill's folder into those directories.
 
+For tasks that must get done, add a `brute-force` skill: it makes the agent define a checkable
+"done", then loop through different approaches, agents, tools and GitHub projects until the check
+passes, the same idea as the Ralph loop. Say "brute force" in a message to use it. It still stops
+for passwords, CAPTCHAs, irreversible actions and expensive models, and asks you.
+
 Add lines to your full force section so the lead names the right skill in each delegated task,
 and a Team rule for the Team option:
 
