@@ -119,7 +119,7 @@ describe("orderDashboardNowPlaying", () => {
         thread("run-old", "app", minutesAgo(30), "working"),
         finished("done-old", 40),
         thread("run-new", "app", minutesAgo(5), "working"),
-        finished("needs-you", 3, "waiting"),
+        finished("needs-you", 1, "waiting"),
         finished("failed", 20, "failed"),
       ]),
     ).toEqual({ current: "needs-you", others: ["run-new", "run-old", "failed", "done-old"] });

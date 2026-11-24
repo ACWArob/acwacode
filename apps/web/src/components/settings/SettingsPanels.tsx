@@ -513,7 +513,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       ? ["Snooze until limits reset"]
       : []),
     ...(settings.switchModelOnUsageLimit !== DEFAULT_UNIFIED_SETTINGS.switchModelOnUsageLimit
-      ? ["Switch to a backup model when a usage limit is hit"]
+      ? ["Switch to the fallback model when a usage limit is hit"]
       : []),
     ...(!Equal.equals(settings.snoozePresets, DEFAULT_UNIFIED_SETTINGS.snoozePresets)
       ? ["Snooze options"]
@@ -1886,7 +1886,11 @@ export function ThreadsSettingsPanel() {
         <SettingsRow
           serverScoped
           {...searchableSetting("switch-model-on-usage-limit")}
-          description="Continue a limited thread right away on the fallback model instead of waiting for the reset."
+          description={
+            settings.switchModelOnUsageLimit && settings.fallbackModelSelection === null
+              ? "Pick a fallback model below; until then, limited threads wait for the reset."
+              : "Continue a limited thread right away on the fallback model instead of waiting for the reset."
+          }
           settingKeys={["switchModelOnUsageLimit"]}
           control={
             <ScopedSwitch
@@ -1895,7 +1899,7 @@ export function ThreadsSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ switchModelOnUsageLimit: Boolean(checked) })
               }
-              aria-label="Switch to a backup model when a usage limit is hit"
+              aria-label="Switch to the fallback model when a usage limit is hit"
             />
           }
         />

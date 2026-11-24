@@ -2,7 +2,7 @@ import { parseScopedThreadKey, scopeProjectRef } from "@t3tools/client-runtime/e
 import type { ScopedProjectRef } from "@t3tools/contracts";
 import { useGT, useMessages } from "gt-react";
 import { FileDiffIcon, FolderIcon } from "lucide-react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 
 import { FileSurfaceLoading } from "~/components/files/fileSurfaceChrome";
 import { resolveSidebarRowStatus, resolveThreadLastVisitedAt } from "~/components/Sidebar.logic";
@@ -107,13 +107,13 @@ export function ThreadBoardCard(props: {
       title={isDiff ? gt("Diff: {title}", { title: threadTitle }) : threadTitle}
       leading={leading}
       {...(isDiff
-        ? { extras: projectChip }
+        ? { extras: <HeaderChipGroup>{projectChip}</HeaderChipGroup> }
         : {
             extras: (
-              <>
+              <HeaderChipGroup>
                 {projectChip}
                 {threadRef === null ? null : <ThreadHeaderChips threadRef={threadRef} />}
-              </>
+              </HeaderChipGroup>
             ),
             onActivateTitle: promote,
             titleActionLabel:
@@ -159,6 +159,15 @@ export function ThreadBoardCard(props: {
   );
 }
 
+// Chips give way to the title in narrow cards: the group shrinks four times faster than it.
+function HeaderChipGroup(props: { readonly children: ReactNode }) {
+  return (
+    <span className="flex min-w-0 shrink-[4] items-center gap-2 overflow-hidden">
+      {props.children}
+    </span>
+  );
+}
+
 function ThreadProjectChip(props: { readonly title: string }) {
   const gt = useGT();
   return (
@@ -167,7 +176,7 @@ function ThreadProjectChip(props: { readonly title: string }) {
         render={
           <span
             data-testid="thread-project-chip"
-            className="inline-flex h-[18px] min-w-0 shrink items-center gap-1 rounded-sm border border-border px-1.5 text-2xs text-muted-foreground"
+            className="inline-flex h-[18px] max-w-40 min-w-0 shrink items-center gap-1 rounded-sm border border-border px-1.5 text-2xs text-muted-foreground"
           />
         }
       >

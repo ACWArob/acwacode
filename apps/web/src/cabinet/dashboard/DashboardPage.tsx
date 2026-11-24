@@ -156,7 +156,7 @@ export function DashboardPage() {
                 {nowPlayingCard(nowPlaying.current, "large")}
               </div>
               {nowPlaying.others.length > 0 ? (
-                <ul className="flex min-w-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain pb-1">
+                <ul className="flex min-w-0 flex-1 snap-x snap-proximity [overflow-anchor:none] gap-3 overflow-x-auto overscroll-x-contain pb-1">
                   {nowPlaying.others.map((thread) => (
                     <li key={threadKeyOf(thread)} className="w-52 shrink-0 snap-start">
                       {nowPlayingCard(thread, "small")}

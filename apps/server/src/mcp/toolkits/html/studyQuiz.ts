@@ -88,7 +88,7 @@ function scriptJson(value: unknown): string {
 }
 
 const STYLE = `
-.q{font:15px/1.5 var(--font-sans);color:var(--foreground)}
+.q{font:15px/1.5 var(--font-sans);color:var(--foreground);overflow-wrap:anywhere}
 .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;color:var(--muted-foreground);font-size:13px}
 .tabs button,.row button{font:inherit;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--foreground);border-radius:var(--radius);padding:6px 12px}
 .row button:disabled{cursor:default;opacity:.55}
@@ -106,6 +106,9 @@ const STYLE = `
 .fb b.ok{color:var(--success)} .fb b.no{color:var(--destructive)}
 .hint{margin-top:10px;color:var(--muted-foreground);white-space:pre-wrap}
 .row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tabs.row{margin-top:0;flex-wrap:nowrap;flex-shrink:0}
+.opt>span{min-width:0}
+.tabs button,.row button{min-height:40px}
 .row .primary{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
 .score{font-size:22px;font-weight:700;margin:0 0 6px}
 .flip{cursor:pointer;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:pre-wrap}
@@ -130,7 +133,7 @@ const total = (q) => q.rubric.reduce((sum, c) => sum + c.points, 0);
 const pts = (n) => n + (n === 1 ? " pt" : " pts");
 let mode = quiz.view === "flashcards" ? "cards" : "quiz", order = quiz.questions.map((_, i) => i), pos = 0, picked = null, showHint = false, missed = [], correct = 0, flipped = false;
 const drafts = {}, hintsShown = {}, sent = {}, revealed = {};
-const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "on") n.addEventListener("click", v); else if (k === "text") n.textContent = v; else n.setAttribute(k, v); } for (const c of kids) if (c) n.append(c); return n; };
+const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "on") n.addEventListener("click", v); else if (k === "text") n.textContent = v; else if (v === false) continue; else if (v === true) n.setAttribute(k, ""); else n.setAttribute(k, v); } for (const c of kids) if (c) n.append(c); return n; };
 function restart(list) { order = list; pos = 0; picked = null; showHint = false; missed = []; correct = 0; flipped = false; render(); }
 function next() { pos += 1; picked = null; showHint = false; render(); }
 function writtenCard(index, q) {
@@ -179,6 +182,11 @@ function render() {
     const choices = order.filter((i) => !written(quiz.questions[i])).length;
     const graded = order.filter((i) => sent[i]).length;
     const card = el("div", { class: "card" });
+    if (mode === "cards") {
+      card.append(el("p", { class: "score", text: "Deck done" }), el("div", { text: order.length + " cards reviewed." }),
+        el("div", { class: "row" }, el("button", { class: "primary", text: "Start over", on: () => restart(quiz.questions.map((_, i) => i)) })));
+      root.append(card); return;
+    }
     if (choices) card.append(el("p", { class: "score", text: correct + " / " + choices }),
       el("div", { text: missed.length ? "Missed: " + missed.map((i) => "Q" + (i + 1)).join(", ") : "Every one right." }));
     if (choices < order.length) card.append(el("div", { text: graded + " of " + (order.length - choices) + " written answers sent for grading." }));
@@ -190,9 +198,10 @@ function render() {
   const index = order[pos], q = quiz.questions[index];
   root.append(el("div", { class: "top" }, el("span", { text: quiz.title + " · " + (pos + 1) + " of " + order.length }), tabs));
   if (mode === "cards") {
-    const card = el("div", { class: "card flip", text: flipped ? cardBack(q) : q.prompt, on: () => { flipped = !flipped; render(); } });
+    const card = el("div", { class: "card flip", role: "button", tabindex: "0", "aria-label": flipped ? "Answer. Press to show the question" : "Question. Press to show the answer", text: flipped ? cardBack(q) : q.prompt, on: () => { flipped = !flipped; render(); } });
+    card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); flipped = !flipped; render(); } });
     root.append(card, el("div", { class: "row" },
-      el("button", { text: "Previous", on: () => { pos = Math.max(0, pos - 1); flipped = false; render(); } }),
+      el("button", { text: "Previous", disabled: pos === 0, on: () => { pos = Math.max(0, pos - 1); flipped = false; render(); } }),
       el("button", { class: "primary", text: pos + 1 < order.length ? "Next" : "Done", on: () => { pos += 1; flipped = false; render(); } })));
     return;
   }
@@ -208,7 +217,7 @@ function render() {
   card.append(opts);
   if (picked === null && q.hint) {
     if (showHint) card.append(el("div", { class: "hint", text: "Hint: " + q.hint }));
-    else card.append(el("div", { class: "row" }, el("button", { text: "Show hint", on: () => { showHint = true; render(); } })));
+    else card.append(el("div", { class: "row" }, el("button", { text: "Hint", on: () => { showHint = true; render(); } })));
   }
   if (picked !== null) {
     const ok = picked === q.answer;

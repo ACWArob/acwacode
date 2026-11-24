@@ -344,7 +344,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Fallback model",
     to: "/settings/threads",
     scope: "environment-defaults",
-    searchTerms: ["fallback agent provider out of usage new threads"],
+    searchTerms: ["fallback backup agent provider out of usage limit new threads"],
     environmentOnly: true,
   },
   {
@@ -510,7 +510,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "switch-model-on-usage-limit",
-    title: "Switch to a backup model when a usage limit is hit",
+    title: "Switch to the fallback model when a usage limit is hit",
     to: "/settings/threads",
     searchTerms: ["usage quota rate limit fallback backup model provider switch continue"],
   },

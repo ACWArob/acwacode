@@ -12,9 +12,11 @@ import {
   moveCardToSlot,
   openCard,
   openThreadCard,
+  type ProjectThreadCandidate,
   promoteThreadCard,
   resizeCard,
   sanitizeLayout,
+  splitAcrossProjects,
   swapCards,
 } from "./board.logic";
 import type { BoardLayout, BoardPresetId } from "./board.types";
@@ -30,6 +32,12 @@ interface BoardStoreState {
   openCabinetItem: (key: string, item: CabinetCardItem) => void;
   /** Opens a thread (scoped thread key) as a secondary card; a no-op for the route's own thread. */
   openThread: (key: string, threadKey: string, primaryThreadKey: string | null) => void;
+  /** Switches to 2×2 and fills empty slots with other projects' latest threads; see `splitAcrossProjects`. */
+  splitAcrossProjects: (
+    key: string,
+    candidates: readonly ProjectThreadCandidate[],
+    primaryThreadKey: string | null,
+  ) => void;
   /** Opens the full-thread diff of a thread (scoped thread key) as a card. */
   openDiff: (key: string, threadKey: string) => void;
   /** Swaps a secondary thread card for the route's previous thread; the caller navigates. */
@@ -80,6 +88,8 @@ export const useBoardStore = create<BoardStoreState>()(
           ),
         openThread: (key, threadKey, primaryThreadKey) =>
           update(key, (layout) => openThreadCard(layout, threadKey, primaryThreadKey)),
+        splitAcrossProjects: (key, candidates, primaryThreadKey) =>
+          update(key, (layout) => splitAcrossProjects(layout, candidates, primaryThreadKey)),
         openDiff: (key, threadKey) =>
           update(key, (layout) => openCard(layout, { kind: "diff", ref: threadKey })),
         promoteThread: (key, cardId, previousPrimaryThreadKey) =>

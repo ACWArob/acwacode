@@ -263,8 +263,9 @@ export function callReadiness(input: {
   readonly destinationChosen: boolean;
   readonly unsupportedReason: string | null;
 }): CallReadiness {
-  if (input.available) return { kind: "ready" };
+  // A device that never chose where voice goes reports "available" so its first tap opens setup.
   if (!input.destinationChosen) return { kind: "setup" };
+  if (input.available) return { kind: "ready" };
   return {
     kind: "unavailable",
     reason:

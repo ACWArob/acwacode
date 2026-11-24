@@ -1,9 +1,9 @@
-export const DEFAULT_COMPOSER_PLACEHOLDER = "Message #channel (@ an agent to pick one)";
+export const DEFAULT_COMPOSER_PLACEHOLDER = "Message #channel";
 
 export function channelNameForTitle(title: string | undefined): string {
   return title?.replace(/^#+\s*/, "").trim() || "new-channel";
 }
 
 export function composerPlaceholderForChannel(title: string | undefined): string {
-  return `Message #${channelNameForTitle(title)} (@ an agent to pick one)`;
+  return `Message #${channelNameForTitle(title)}`;
 }

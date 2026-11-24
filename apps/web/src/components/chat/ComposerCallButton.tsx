@@ -21,6 +21,8 @@ export function ComposerCallButton(props: {
   onStart(council: boolean): void;
   onEnd(): void;
   onOpenScreen(): void;
+  /** A narrow composer shows one button that opens the call screen, which has Call and Council. */
+  compact?: boolean;
 }) {
   if (props.phase !== "off") {
     return (
@@ -46,6 +48,16 @@ export function ComposerCallButton(props: {
           onClick={props.onOpenScreen}
         />
       </div>
+    );
+  }
+  if (props.compact) {
+    return (
+      <CallStartButton
+        available
+        label="Open the call screen"
+        icon={<PhoneIcon />}
+        onClick={props.onOpenScreen}
+      />
     );
   }
   return (

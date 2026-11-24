@@ -276,7 +276,7 @@ the snooze. Enable **Snooze until limits reset** in thread behavior settings to
 snooze limit stops by default. Providers without a reset time offer manual
 retry and the normal snooze choices.
 
-To skip the wait, enable **Switch to a backup model when a usage limit is hit**
+To skip the wait, enable **Switch to the fallback model when a usage limit is hit**
 in **Settings → Threads** and pick a **Fallback model** from another provider.
 A limited thread then continues right away on that model, unless the stopped run
 already used the fallback's provider or the thread is snoozed, settled, or

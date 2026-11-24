@@ -3,7 +3,7 @@ import { CheckIcon, ListChecksIcon, ShuffleIcon, UsersIcon } from "lucide-react"
 import type { ReactNode } from "react";
 
 import type { AppModelOption } from "../../modelSelection";
-import type { ProviderInstanceEntry } from "../../providerInstances";
+import { isProviderInstancePickerReady, type ProviderInstanceEntry } from "../../providerInstances";
 import {
   Menu,
   MenuGroup,
@@ -28,7 +28,7 @@ export function ComposerAgentPicker(props: {
   readonly onTeam: () => void;
 }) {
   const agents = props.entries
-    .filter((entry) => entry.isAvailable)
+    .filter(isProviderInstancePickerReady)
     .map((entry) => ({
       entry,
       models: (props.modelOptionsByInstance.get(entry.instanceId) ?? []).slice(0, MODELS_PER_AGENT),

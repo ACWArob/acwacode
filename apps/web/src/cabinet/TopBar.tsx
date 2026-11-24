@@ -91,6 +91,7 @@ function DashboardButton(props: { readonly current: boolean }) {
             variant="ghost-muted"
             aria-label={gt("Dashboard")}
             aria-current={props.current ? "page" : undefined}
+            data-pressed={props.current ? "" : undefined}
             onClick={() => void navigate({ to: "/dashboard" })}
           />
         }
@@ -109,7 +110,8 @@ function BoardControls() {
   const { shownTarget } = useShownThreadRouteTarget();
   const key = active === null ? null : boardKey(active.environmentId, active.projectId);
   const layout = useBoardStore(key === null ? selectDefaultLayout : selectBoardLayout(key));
-  if (active === null || key === null) return null;
+  // Holds the header grid's middle column so the right group stays right.
+  if (active === null || key === null) return <span />;
   const primaryThreadKey = scopedThreadKey(active.threadRef);
   const primaryIsServer = shownTarget?.kind === "server";
   const current = activeTopBarView(layout.preset);

@@ -285,6 +285,10 @@ import { readPullRequestListPreferences } from "~/components/pullRequest/pullReq
 import { useThreadRouteTarget } from "../hooks/useThreadRouteTarget";
 import { threadRecentUse } from "@t3tools/shared/paletteSearch";
 import { APP_BASE_NAME } from "~/branding";
+import { boardKey } from "~/cabinet/board/board.logic";
+import { otherProjectThreads } from "~/cabinet/board/BoardAddCardMenu";
+import { useBoardStore } from "~/cabinet/board/boardStore";
+import { useActiveProjectRef } from "~/cabinet/board/useActiveProjectRef";
 
 const EMPTY_BROWSE_ENTRIES: FilesystemBrowseResult["entries"] = [];
 const ADD_PROJECT_ENTRY_GROUP = "add-project";
@@ -581,6 +585,7 @@ function OpenCommandPaletteDialog(props: {
         delegatedUnderParent,
       ),
   );
+  const activeBoard = useActiveProjectRef();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const providersByEnvironment = useEnvironmentProviders();
   const { changeThemeItem, changeAppearanceItem, themeEditorItem } = useCommandPaletteThemeItems();
@@ -1652,6 +1657,26 @@ function OpenCommandPaletteDialog(props: {
       openChildSearch("files", { query, linkedThreadSearch }, "computer");
     },
   });
+
+  if (activeBoard !== null) {
+    actionItems.push({
+      kind: "action",
+      value: "action:split-board-across-projects",
+      searchTerms: ["split", "board", "projects", "2x2", "grid", "side by side", "four"],
+      title: "Split board across projects",
+      icon: <LayoutGridIcon className={ITEM_ICON_CLASS} />,
+      run: async () => {
+        const key = boardKey(activeBoard.environmentId, activeBoard.projectId);
+        useBoardStore
+          .getState()
+          .splitAcrossProjects(
+            key,
+            otherProjectThreads(threads, projects, key),
+            scopedThreadKey(activeBoard.threadRef),
+          );
+      },
+    });
+  }
 
   actionItems.push({
     kind: "action",

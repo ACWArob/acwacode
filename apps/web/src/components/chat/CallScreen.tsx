@@ -73,11 +73,11 @@ export function CallScreen(props: {
   const active = props.phase !== "off";
 
   return (
-    <div className="fixed inset-0 z-45 flex flex-col bg-background">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
       <header className="flex items-center gap-2 border-b px-4 py-3">
         <button
           type="button"
-          className="min-w-0 flex-1 truncate text-left font-medium"
+          className="min-h-11 min-w-0 flex-1 truncate py-2 text-left font-medium"
           onClick={() => setPicking((open) => !open)}
         >
           {props.threadTitle || "Pick a chat"}
@@ -97,7 +97,7 @@ export function CallScreen(props: {
         <ThreadPicker currentThreadId={props.threadId} onPicked={() => setPicking(false)} />
       ) : (
         <>
-          <section className="grid grid-cols-4 gap-3 px-4 py-6">
+          <section className="mx-auto grid w-full max-w-md grid-cols-4 gap-3 px-4 py-6">
             {CALL_AGENTS.map((agent) => (
               <div key={agent.key} className="flex flex-col items-center gap-2">
                 <div
@@ -114,7 +114,7 @@ export function CallScreen(props: {
             ))}
           </section>
 
-          <section className="flex flex-col items-center gap-3 px-6 text-center">
+          <section className="mx-auto flex w-full max-w-md flex-col items-center gap-3 px-6 text-center">
             {props.readiness.kind === "setup" ? (
               <>
                 <p className="text-sm">Voice needs a one-time setup on this device.</p>
@@ -153,7 +153,7 @@ export function CallScreen(props: {
             ) : null}
           </section>
 
-          <section className="mt-4 min-h-0 flex-1 overflow-y-auto px-4">
+          <section className="mx-auto mt-4 min-h-0 w-full max-w-md flex-1 overflow-y-auto px-4">
             <h2 className="mb-2 font-medium text-muted-foreground text-xs uppercase">
               What they're doing
             </h2>
@@ -229,13 +229,16 @@ function ThreadPicker(props: { readonly currentThreadId: string; readonly onPick
     .slice(0, MAX_THREADS);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-3 px-4 py-3">
+    <section className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col gap-3 px-4 py-3">
       <Input
         placeholder="Search projects and chats"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         autoFocus
       />
+      {matches.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No chats match.</p>
+      ) : null}
       <ul className="min-h-0 flex-1 overflow-y-auto">
         {matches.map((thread) => (
           <li key={`${thread.environmentId}:${thread.id}`}>

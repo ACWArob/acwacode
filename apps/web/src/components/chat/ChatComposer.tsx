@@ -275,7 +275,7 @@ import { Button } from "../ui/button";
 import { useManagedPolicy } from "../../state/managedPolicy";
 import { hasProviderSetup } from "./ProviderStatusBanner";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
-import type { ProviderInstanceEntry } from "../../providerInstances";
+import { isProviderInstancePickerReady, type ProviderInstanceEntry } from "../../providerInstances";
 import type { UnifiedSettings } from "@t3tools/contracts/settings";
 import { isVideoAttachment, type SessionPhase, type Thread } from "../../types";
 import { type ComposerPromptHistoryPosition } from "./composerPromptHistory";
@@ -1056,16 +1056,18 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       ? resolveLastAgentSelection({
           runs: activeThreadRuns,
           noteMode,
-          route: autoRoute(prompt, routableProviderInstanceEntries, selectedModelSelection),
+          route: autoRoute(
+            prompt,
+            routableProviderInstanceEntries.filter(isProviderInstancePickerReady),
+            selectedModelSelection,
+          ),
           pick: agentPick,
-          isPrepaid: (selection) =>
-            routableProviderInstanceEntries.some(
-              (entry) =>
-                entry.instanceId === selection.instanceId && entry.driverKind === "acpRegistry",
-            ),
+          // OpenRouter models through OpenCode run on small prepaid credits.
+          isPrepaid: (selection) => selection.model.startsWith("openrouter/"),
           isRoutable: (selection) =>
             routableProviderInstanceEntries.some(
-              (entry) => entry.instanceId === selection.instanceId,
+              (entry) =>
+                entry.instanceId === selection.instanceId && isProviderInstancePickerReady(entry),
             ),
         })
       : null;
@@ -2382,6 +2384,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   };
   const startCall = (council: boolean) => {
     if (window.matchMedia("(max-width: 640px)").matches) showCallScreen(true);
+    if (speechInput.transcriptionEnvironmentId === null) return;
     voiceCall.startCall(council);
   };
   const submitComposer = (
@@ -3626,6 +3629,41 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       @
     </button>
   );
+  const callScreenReadiness = callReadiness({
+    available: speechInput.available && !dictationDisabled,
+    destinationChosen: speechInput.transcriptionEnvironmentId !== null,
+    unsupportedReason:
+      speechInput.status && !speechInput.status.supported ? speechInput.status.reason : null,
+  });
+  // Rendered outside the composer footer (a collapsed phone composer hides it), and out of the
+  // way while the voice setup dialog is open.
+  const callScreenPortal =
+    callScreenOpen && !speechInput.setup.open
+      ? createPortal(
+          <CallScreen
+            threadId={activeThread?.id ?? ""}
+            threadTitle={activeThread?.title ?? ""}
+            phase={voiceCall.phase}
+            council={voiceCall.council}
+            speaker={voiceCall.speaker}
+            readiness={callScreenReadiness}
+            micRecording={speechInput.state.phase === "recording"}
+            micError={speechInput.state.error}
+            level={speechInput.level}
+            heard={
+              speechInput.preview
+                ? `${speechInput.preview.committed}${speechInput.preview.tentative}`
+                : ""
+            }
+            activity={callActivity(callTurnItems)}
+            onStart={startCall}
+            onDoneTalking={voiceCall.finishTurn}
+            onEnd={voiceCall.endCall}
+            onClose={() => showCallScreen(false)}
+          />,
+          document.body,
+        )
+      : null;
   return (
     <form
       ref={composerFormRef}
@@ -4118,44 +4156,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     <ComposerCallButton
                       phase={voiceCall.phase}
                       council={voiceCall.council}
-                      available={speechInput.available && !dictationDisabled}
+                      available={callScreenReadiness.kind === "ready"}
                       onStart={startCall}
                       onEnd={voiceCall.endCall}
                       onOpenScreen={() => showCallScreen(true)}
+                      compact={isComposerFooterCompact && voiceCall.phase === "off"}
                     />
-                    {callScreenOpen
-                      ? createPortal(
-                          <CallScreen
-                            threadId={activeThread?.id ?? ""}
-                            threadTitle={activeThread?.title ?? ""}
-                            phase={voiceCall.phase}
-                            council={voiceCall.council}
-                            speaker={voiceCall.speaker}
-                            readiness={callReadiness({
-                              available: speechInput.available && !dictationDisabled,
-                              destinationChosen: speechInput.transcriptionEnvironmentId !== null,
-                              unsupportedReason:
-                                speechInput.status && !speechInput.status.supported
-                                  ? speechInput.status.reason
-                                  : null,
-                            })}
-                            micRecording={speechInput.state.phase === "recording"}
-                            micError={speechInput.state.error}
-                            level={speechInput.level}
-                            heard={
-                              speechInput.preview
-                                ? `${speechInput.preview.committed}${speechInput.preview.tentative}`
-                                : ""
-                            }
-                            activity={callActivity(callTurnItems)}
-                            onStart={startCall}
-                            onDoneTalking={voiceCall.finishTurn}
-                            onEnd={voiceCall.endCall}
-                            onClose={() => showCallScreen(false)}
-                          />,
-                          document.body,
-                        )
-                      : null}
                     <VoiceInputSetup
                       environmentId={speechInput.transcriptionEnvironmentId}
                       open={speechInput.setup.open}
@@ -4199,6 +4205,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           </div>
         </ComposerSurface.Main>
       </div>
+      {callScreenPortal}
     </form>
   );
 });

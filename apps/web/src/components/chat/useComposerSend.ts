@@ -889,7 +889,7 @@ export function useComposerSend(input: ComposerSendInput) {
     const promptProviderRouting =
       routingInput === null
         ? null
-        : mentionedTargets.length > 1
+        : mentionedTargets.length > 0
           ? mentionedTargets[0]!
           : resolvePromptProviderRouting(routingInput);
     const queuedAgentSelections = mentionedTargets.slice(1).map((target) => target.modelSelection);

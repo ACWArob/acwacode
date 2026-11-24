@@ -183,6 +183,7 @@ describe("callReadiness", () => {
   it.each([
     [{ available: true, destinationChosen: true, unsupportedReason: null }, "ready"],
     [{ available: false, destinationChosen: false, unsupportedReason: null }, "setup"],
+    [{ available: true, destinationChosen: false, unsupportedReason: null }, "setup"],
     [{ available: false, destinationChosen: true, unsupportedReason: "No model" }, "unavailable"],
   ] as const)("%o → %s", (input, kind) => {
     expect(callReadiness(input).kind).toBe(kind);

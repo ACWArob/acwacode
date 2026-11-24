@@ -11,7 +11,7 @@ const DASHBOARD_RECENT_THREAD_COUNT = 3;
 /** Finished chats stay in the now-playing strip this long. */
 const NOW_PLAYING_RECENT_MS = 60 * 60 * 1000;
 /** A finish this fresh takes the large card from running chats. */
-const NOW_PLAYING_CURRENT_MS = 10 * 60 * 1000;
+const NOW_PLAYING_CURRENT_MS = 2 * 60 * 1000;
 const NOW_PLAYING_LIMIT = 12;
 
 interface DashboardProject {
