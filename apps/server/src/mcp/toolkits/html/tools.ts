@@ -113,7 +113,7 @@ const HtmlRenderTool = Tool.make(HTML_RENDER_TOOL_NAME, {
   .annotate(Tool.OpenWorld, true)
   .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
-const StudyQuizQuestion = Schema.Struct({
+const StudyChoiceQuestion = Schema.Struct({
   prompt: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(4_000)),
   options: Schema.Array(
     Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(1_000)),
@@ -129,15 +129,48 @@ const StudyQuizQuestion = Schema.Struct({
   ),
 });
 
+const StudyWrittenQuestion = Schema.Struct({
+  kind: Schema.Literals(["short", "long"]).annotate({
+    description:
+      "short: one-line box, 1-3 sentence answer, 1-3 criteria. long: tall box, paragraph or essay, 3-6 criteria.",
+  }),
+  prompt: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(4_000)),
+  rubric: Schema.Array(
+    Schema.Struct({
+      criterion: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(200)),
+      points: Schema.Int.annotate({ description: "Positive." }),
+      earnedBy: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(1_000)).annotate({
+        description: "What the answer must show to earn these points.",
+      }),
+    }),
+  ).check(Schema.isMaxLength(8)),
+  hints: Schema.Array(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(1_000)))
+    .check(Schema.isMinLength(1), Schema.isMaxLength(3))
+    .annotate({ description: "Progressive nudges, vaguest first. None gives the answer away." }),
+  modelAnswer: Schema.optional(
+    Schema.String.check(Schema.isMaxLength(8_000)).annotate({
+      description: "Shown only when the user asks for the answer.",
+    }),
+  ),
+});
+
 const StudyQuizTool = Tool.make("study_quiz", {
   description:
-    "Show an interactive multiple-choice quiz inline in this thread: one question at a time, instant right/wrong with your explanation, optional hints, a score, retry-missed, and a flashcard view. Use when the user asks for a quiz, MCQs, flashcards, or practice questions. Do not restate the questions in your reply.",
+    "Show interactive study questions inline in this thread, one at a time. Four kinds: flashcards (view: flashcards), multiple choice (instant right/wrong with your explanation), short written (1-3 sentences, small rubric), and long written (paragraph or essay, bigger rubric). Written questions have progressive hints and a model answer; Submit sends the answer to you to grade against the rubric. Kinds can mix in one call. Use when the user asks for a quiz, flashcards, or practice. Use the kind they ask for; when practice needs explanation, prefer written questions with rubrics. Do not restate the questions in your reply.",
   parameters: Schema.Struct({
     title: Schema.String.check(
       Schema.isMinLength(1),
       Schema.isMaxLength(HTML_RENDER_MAX_TITLE_LENGTH),
     ),
-    questions: Schema.Array(StudyQuizQuestion).check(Schema.isMinLength(1), Schema.isMaxLength(50)),
+    questions: Schema.Array(Schema.Union([StudyChoiceQuestion, StudyWrittenQuestion])).check(
+      Schema.isMinLength(1),
+      Schema.isMaxLength(50),
+    ),
+    view: Schema.optional(
+      Schema.Literals(["quiz", "flashcards"]).annotate({
+        description: "First view. Default quiz.",
+      }),
+    ),
   }),
   success: Schema.Struct({
     htmlRender: Schema.Struct({

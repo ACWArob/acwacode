@@ -275,6 +275,20 @@ export function readHtmlRenderLinkRequest(data: unknown):
     : undefined;
 }
 
+/** A page asks the host to send `text` as the reader's message in the page's thread. */
+export const HTML_RENDER_SEND_TYPE = "t3:html-render-send";
+const HTML_RENDER_SEND_MAX_LENGTH = 32_000;
+
+export function readHtmlRenderSendRequest(data: unknown): { readonly text: string } | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+  const { type, text } = data as Record<string, unknown>;
+  if (type !== HTML_RENDER_SEND_TYPE || typeof text !== "string") return undefined;
+  const trimmed = text.trim();
+  return trimmed.length > 0 && trimmed.length <= HTML_RENDER_SEND_MAX_LENGTH
+    ? { text: trimmed }
+    : undefined;
+}
+
 interface HtmlRenderImage {
   readonly src: string;
   readonly name: string;

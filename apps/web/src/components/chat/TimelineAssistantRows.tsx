@@ -402,6 +402,7 @@ export function HtmlRenderTimelineRow({
         environmentId={ctx.activeThreadEnvironmentId}
         htmlRender={row.htmlRender}
         threadRef={ctx.threadRef ?? undefined}
+        onSendMessage={ctx.onSendHtmlRenderMessage}
         onFullscreenChange={onFullscreenChange}
       />
     </div>

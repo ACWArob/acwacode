@@ -17,6 +17,7 @@ import {
   type RunAttemptId,
   type ServerProviderSkill,
   type RunId,
+  type ScopedThreadRef,
   ThreadId,
 } from "@t3tools/contracts";
 import { parseScopedThreadKey } from "@t3tools/client-runtime/environment";
@@ -295,6 +296,7 @@ interface MessagesTimelineProps {
   onRevertToTurnCount: (targetTurnCount: number, messageId: MessageId) => void;
   onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
   onSendAppMessage?: (text: string) => Promise<void>;
+  onSendHtmlRenderMessage?: (threadRef: ScopedThreadRef | undefined, text: string) => Promise<void>;
   onRunShellCommand?: (command: string) => void;
   isRevertingCheckpoint: boolean;
   onImageExpand: (preview: ExpandedImagePreview) => void;
@@ -396,6 +398,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
   onRevertToTurnCount,
   onUseArtifactTemplate = NOOP_USE_ARTIFACT_TEMPLATE,
   onSendAppMessage,
+  onSendHtmlRenderMessage,
   onRunShellCommand,
   isRevertingCheckpoint,
   onImageExpand,
@@ -1139,6 +1142,7 @@ const ConversationTimeline = memo(function ConversationTimeline({
     onFileOpen,
     onUseArtifactTemplate,
     onSendAppMessage,
+    onSendHtmlRenderMessage,
     onAppFullscreenChange,
     onFileDownload,
     openPullRequest,

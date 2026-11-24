@@ -36,6 +36,25 @@ describe("HtmlRenderDocument", () => {
     expect(onContentHeight).toHaveBeenCalledTimes(1);
   });
 
+  it("sends a page's message only from a click in the page", async () => {
+    const send = (text: string) =>
+      `parent.postMessage(${JSON.stringify({ type: "t3:html-render-send", text })}, "*")`;
+    const html = injectHtmlRenderBootstrap(
+      `<!doctype html><html><body><button onclick='${send("Grade this")}'>Submit</button><script>${send("On load")}</script></body></html>`,
+    );
+    const src = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    using _url = { [Symbol.dispose]: () => URL.revokeObjectURL(src) };
+    const onSendRequest = vi.fn();
+    await using screen = await render(
+      <HtmlRenderDocument src={src} title="Study" onSendRequest={onSendRequest} />,
+    );
+
+    await page.frameLocator(screen.getByTitle("Study")).getByRole("button").click();
+
+    await vi.waitFor(() => expect(onSendRequest).toHaveBeenCalledWith("Grade this"));
+    expect(onSendRequest).toHaveBeenCalledTimes(1);
+  });
+
   it("opens a clicked image with the other images of its block in the viewer", async () => {
     const swatch = (color: string) =>
       `data:image/svg+xml,${encodeURIComponent(

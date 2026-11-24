@@ -1940,6 +1940,23 @@ export default function ChatView(props: ChatViewProps) {
     }
   };
   const sendAppMessageStable = useStableCallback(sendAppMessage);
+  // A page in another thread must not post into this one; with no thread to send to, the text
+  // goes to the composer for the reader to send.
+  const sendHtmlRenderMessage = async (threadRef: ScopedThreadRef | undefined, text: string) => {
+    if (threadRef === undefined || !isServerThread || activeThreadId === null) {
+      const composer = composerRef.current;
+      if (!composer?.insertTextAtEnd(text, { ensureLeadingBoundary: true })) {
+        throw new Error("The composer is busy; try again once it is ready.");
+      }
+      scheduleComposerFocusStable();
+      return;
+    }
+    if (threadRef.environmentId !== environmentId || threadRef.threadId !== activeThreadId) {
+      throw new Error("That page belongs to another thread.");
+    }
+    await sendAppMessage(text);
+  };
+  const sendHtmlRenderMessageStable = useStableCallback(sendHtmlRenderMessage);
   const queuedRunsControlRef = useRef<QueuedRunsControlHandle>(null);
 
   const {
@@ -3531,6 +3548,7 @@ export default function ChatView(props: ChatViewProps) {
                   onRevertToTurnCount={onRevertTimelineTurnStable}
                   onUseArtifactTemplate={insertArtifactTemplateStable}
                   onSendAppMessage={sendAppMessageStable}
+                  onSendHtmlRenderMessage={sendHtmlRenderMessageStable}
                   isRevertingCheckpoint={isRevertingCheckpoint}
                   onImageExpand={onExpandTimelineImageStable}
                   onFileOpen={openFileAttachmentStable}

@@ -6,7 +6,7 @@ import {
   type HtmlRenderReference,
 } from "@t3tools/shared/htmlRender";
 import { Maximize2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAssetUrlRefresh } from "~/assets/assetUrls";
 import { useLongLivedAssetUrl } from "~/assets/longLivedAssetUrls";
@@ -19,11 +19,16 @@ import { HtmlRenderDialog } from "./HtmlRenderDialog";
 import { observeResize } from "~/lib/observeResize";
 
 const MIN_URL_LIFE_MS = 5 * 60_000;
+// A page can repeat its send on every click; one message per window is plenty for grading.
+const SEND_INTERVAL_MS = 5_000;
 
 export function HtmlRenderFrame(props: {
   readonly environmentId: EnvironmentId;
   readonly htmlRender: HtmlRenderReference;
   readonly threadRef: ScopedThreadRef | undefined;
+  readonly onSendMessage?:
+    | ((threadRef: ScopedThreadRef | undefined, text: string) => Promise<void>)
+    | undefined;
   readonly onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
   const { attachmentId, title } = props.htmlRender;
@@ -55,6 +60,23 @@ export function HtmlRenderFrame(props: {
   const failed = loaded === null && assetUrl._tag === "Failure";
   const refresh = useAssetUrlRefresh(props.environmentId, resource);
   const [expandedSrc, setExpandedSrc] = useState<string | null>(null);
+  const lastSendAt = useRef(Number.NEGATIVE_INFINITY);
+  const { onSendMessage } = props;
+  const sendRequest =
+    onSendMessage === undefined
+      ? undefined
+      : (text: string) => {
+          const now = performance.now();
+          if (now - lastSendAt.current < SEND_INTERVAL_MS) return;
+          lastSendAt.current = now;
+          onSendMessage(props.threadRef, text).catch((cause: unknown) =>
+            toastManager.add({
+              type: "error",
+              title: "Could not send from the page",
+              description: cause instanceof Error ? cause.message : undefined,
+            }),
+          );
+        };
   const { onFullscreenChange } = props;
   // Tied to the viewer's lifetime: unmounting while expanded must still release
   // the timeline's follow pin, which a close handler alone never reaches.
@@ -76,6 +98,7 @@ export function HtmlRenderFrame(props: {
             threadRef={props.threadRef}
             className="block size-full"
             onContentHeight={setContentHeight}
+            onSendRequest={sendRequest}
             onFullscreenChange={onFullscreenChange}
           />
           <div className="absolute end-2 top-2 flex gap-1 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover/html-render:opacity-100 pointer-coarse:opacity-100">
@@ -112,6 +135,7 @@ export function HtmlRenderFrame(props: {
               src={expandedSrc}
               htmlRender={props.htmlRender}
               threadRef={props.threadRef}
+              onSendRequest={sendRequest}
               onClose={() => setExpandedSrc(null)}
             />
           ) : null}

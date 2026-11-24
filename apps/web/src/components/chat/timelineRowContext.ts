@@ -66,6 +66,10 @@ export interface TimelineRowSharedState {
   onRevertToTurnCount: (targetTurnCount: number, messageId: MessageId) => void;
   onUseArtifactTemplate: (template: CodexArtifactTemplate) => void;
   onSendAppMessage: ((text: string) => Promise<void>) | undefined;
+  /** Sends a message an HTML page asked for, such as a study answer to grade. */
+  onSendHtmlRenderMessage:
+    | ((threadRef: ScopedThreadRef | undefined, text: string) => Promise<void>)
+    | undefined;
   onAppFullscreenChange: (rowId: string, fullscreen: boolean) => void;
   onRunShellCommand: ((command: string) => void) | undefined;
   findActive: boolean;

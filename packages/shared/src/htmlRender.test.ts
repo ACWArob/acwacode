@@ -4,6 +4,7 @@ import {
   injectHtmlRenderBootstrap,
   readHtmlRenderImageRequest,
   readHtmlRenderLinkRequest,
+  readHtmlRenderSendRequest,
 } from "./htmlRender.ts";
 import { htmlRenderFromToolItem } from "./toolOutput.ts";
 
@@ -108,6 +109,20 @@ describe("readHtmlRenderLinkRequest", () => {
     expect(
       readHtmlRenderLinkRequest({ type: "t3-html-render-link", url: "https://example.com" }),
     ).toBeUndefined();
+  });
+});
+
+describe("readHtmlRenderSendRequest", () => {
+  it("accepts trimmed, non-empty, bounded text of the send type only", () => {
+    const send = (text: unknown) => ({ type: "t3:html-render-send", text });
+    expect(readHtmlRenderSendRequest(send("  Grade my answer \n"))).toEqual({
+      text: "Grade my answer",
+    });
+    expect(readHtmlRenderSendRequest(send("   "))).toBeUndefined();
+    expect(readHtmlRenderSendRequest(send(42))).toBeUndefined();
+    expect(readHtmlRenderSendRequest(send("x".repeat(32_001)))).toBeUndefined();
+    expect(readHtmlRenderSendRequest({ type: "t3:html-render-link", text: "hi" })).toBeUndefined();
+    expect(readHtmlRenderSendRequest(null)).toBeUndefined();
   });
 });
 

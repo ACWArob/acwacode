@@ -16,6 +16,7 @@ import {
   readHtmlRenderImageRequest,
   readHtmlRenderKeyDown,
   readHtmlRenderLinkRequest,
+  readHtmlRenderSendRequest,
 } from "@t3tools/shared/htmlRender";
 import {
   isMacPlatform,
@@ -182,6 +183,8 @@ export function HtmlRenderDocument(props: {
   readonly className?: string;
   readonly threadRef?: ScopedThreadRef | undefined;
   readonly onContentHeight?: (height: number) => void;
+  /** A message the page asks to send for the reader; unset drops the request. */
+  readonly onSendRequest?: ((text: string) => void) | undefined;
   /** Reports fullscreen changes so virtualized rows can stay mounted. */
   readonly onFullscreenChange?: ((fullscreen: boolean) => void) | undefined;
 }) {
@@ -275,7 +278,7 @@ export function HtmlRenderDocument(props: {
     onFullscreenChange?.(true);
     return () => onFullscreenChange?.(false);
   }, [expandedImage, onFullscreenChange]);
-  // Links, keys and images require frame focus and recent reader activity: a page can take
+  // Links, keys, images and sends require frame focus and recent reader activity: a page can take
   // focus by script, so this blocks opens on load, though not a page that waits for the
   // reader's next input.
   const onFrameMessage = useEffectEvent((frame: HTMLIFrameElement, event: MessageEvent) => {
@@ -298,6 +301,11 @@ export function HtmlRenderDocument(props: {
           new KeyboardEvent("keydown", { ...key, bubbles: true, cancelable: true }),
         );
       }
+      return;
+    }
+    const sendRequest = readHtmlRenderSendRequest(event.data);
+    if (sendRequest !== undefined) {
+      props.onSendRequest?.(sendRequest.text);
       return;
     }
     const imageRequest = readHtmlRenderImageRequest(event.data);
