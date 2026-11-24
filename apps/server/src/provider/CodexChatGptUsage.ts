@@ -1,4 +1,5 @@
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Schema from "effect/Schema";
 import { HttpClient, HttpClientRequest } from "effect/http";
 
@@ -50,12 +51,15 @@ export function chatGptUsageToSnapshot(usage: typeof UsageResponse.Type): CodexR
  * sign-ins, so read them from the same ChatGPT endpoint Codex's /status uses. Null on any failure.
  */
 export const chatGptUsageLimits = Effect.fn("chatGptUsageLimits")(
-  function* (accessToken: string, checkedAt: string) {
+  function* (accessToken: string, checkedAt: string, accountId?: string) {
     const http = yield* HttpClient.HttpClient;
     const response = yield* http.execute(
       HttpClientRequest.get("https://chatgpt.com/backend-api/wham/usage").pipe(
         HttpClientRequest.bearerToken(accessToken),
         HttpClientRequest.setHeader("Accept", "application/json"),
+        accountId
+          ? HttpClientRequest.setHeader("ChatGPT-Account-Id", accountId)
+          : (request) => request,
       ),
     );
     if (response.status !== 200) return null;
@@ -66,5 +70,31 @@ export const chatGptUsageLimits = Effect.fn("chatGptUsageLimits")(
     return limits.windows.length > 0 ? limits : null;
   },
   Effect.timeout("10 seconds"),
+  Effect.orElseSucceed(() => null),
+);
+
+const CodexCliAuth = Schema.Struct({
+  tokens: Schema.Struct({
+    access_token: Schema.NonEmptyString,
+    account_id: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  }),
+});
+
+/**
+ * ChatGPT answers the usage request for the Codex CLI's own sign-in but not for a token-shared
+ * one, so fall back to the CLI's auth.json on this machine when there is one. Null otherwise.
+ */
+export const codexCliUsageLimits = Effect.fn("codexCliUsageLimits")(
+  function* (authJsonPath: string, checkedAt: string) {
+    const fileSystem = yield* FileSystem.FileSystem;
+    const auth = yield* fileSystem
+      .readFileString(authJsonPath)
+      .pipe(Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(CodexCliAuth))));
+    return yield* chatGptUsageLimits(
+      auth.tokens.access_token,
+      checkedAt,
+      auth.tokens.account_id ?? undefined,
+    );
+  },
   Effect.orElseSucceed(() => null),
 );

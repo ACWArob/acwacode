@@ -4,7 +4,8 @@ import {
   TextGenerationError,
   type CodexSettings,
 } from "@t3tools/contracts";
-import { chatGptUsageLimits } from "../CodexChatGptUsage.ts";
+import { chatGptUsageLimits, codexCliUsageLimits } from "../CodexChatGptUsage.ts";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { preferProbedUsageLimits } from "../codexUsageLimits.ts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -42,6 +43,7 @@ export const makeManagedCodexProvider = Effect.fn("makeManagedCodexProvider")(fu
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const homeDirectory = yield* HostProcess.HomeDirectory;
   const host = yield* ProviderHost.ProviderHost;
   const runtime = yield* makeCodexManagedRuntime({
     instanceId,
@@ -150,10 +152,19 @@ export const makeManagedCodexProvider = Effect.fn("makeManagedCodexProvider")(fu
           const models = yield* chatGptModels(credentials.accessToken, draft.models).pipe(
             Effect.provideService(HttpClient.HttpClient, http),
           );
-          const planLimits = yield* chatGptUsageLimits(
+          const sharedLimits = yield* chatGptUsageLimits(
             credentials.accessToken,
             base.checkedAt,
           ).pipe(Effect.provideService(HttpClient.HttpClient, http));
+          const planLimits =
+            sharedLimits ??
+            (yield* codexCliUsageLimits(
+              path.join(homeDirectory, ".codex", "auth.json"),
+              base.checkedAt,
+            ).pipe(
+              Effect.provideService(HttpClient.HttpClient, http),
+              Effect.provideService(FileSystem.FileSystem, fileSystem),
+            ));
           return { ...draft, models, ...(planLimits ? { usageLimits: planLimits } : {}) };
         }),
       ),
