@@ -38,8 +38,9 @@ export function trackSilence(
   };
 }
 
+// Keep topic words (code, search, …) out of this hint: autoRoute reads the whole draft.
 export const VOICE_CALL_HINT =
-  "(Voice call: answer in a few short spoken sentences. Put any code or long detail in the chat, not in the spoken part.)";
+  "(Voice call: answer in a few short spoken sentences. Put anything long in the chat, not in the spoken part.)";
 
 const MAX_SPOKEN_CHARS = 700;
 

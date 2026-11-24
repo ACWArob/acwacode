@@ -1,6 +1,8 @@
 import { ProviderDriverKind, ProviderInstanceId, type ModelSelection } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
+import { VOICE_CALL_HINT } from "~/speech/voiceCall.logic";
+
 import { autoRoute, resolveLastAgentSelection, type AutoRoute } from "./composerNoteMode";
 
 const claude: ModelSelection = {
@@ -79,6 +81,7 @@ describe("autoRoute", () => {
     ["scrape the prices off this website", null],
     ["help me plan the semester project", null],
     ["thanks!", null],
+    [`hello there\n\n${VOICE_CALL_HINT}`, null],
   ])("%s → %s", (prompt, topic) => {
     expect(pick(prompt).topic).toBe(topic);
   });
