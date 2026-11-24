@@ -40,7 +40,7 @@ import { useComposerDraftStore } from "~/composerDraftStore";
 import { isElectron } from "~/env";
 import { useFolderTerminalStore } from "~/folderTerminalStore";
 import { useHandleNewThread } from "~/hooks/useHandleNewThread";
-import { useProjectPin } from "~/hooks/useProjectGroupUpdate";
+import { useProjectGroupUpdate, useProjectPin } from "~/hooks/useProjectGroupUpdate";
 import { useScratchProject } from "~/hooks/useScratchProject";
 import { useClientSettings } from "~/hooks/useSettings";
 import { useShownThreadRouteTarget } from "~/hooks/useShownThreadRouteTarget";
@@ -69,6 +69,7 @@ import {
 import { boardKey } from "../board/board.logic";
 import { useBoardStore } from "../board/boardStore";
 import { useActiveProjectRef } from "../board/useActiveProjectRef";
+import { CabinetPinnedCard } from "./CabinetPinnedCard";
 import { CabinetProjectRow } from "./CabinetProjectRow";
 import { CabinetSidebarHeader } from "./CabinetSidebarHeader";
 import { CabinetTerminalRow } from "./CabinetTerminalRow";
@@ -97,6 +98,8 @@ function readRouteThreadKey(router: AnyRouter): string | null {
 }
 
 const PARKED_ROW_KEY = "parked";
+const PINNED_ROW_KEY = "pinned";
+const HIDE_PROJECT_MENU_ID = "hide-project";
 
 interface ThreadMenuRequest {
   readonly id: number;
@@ -254,6 +257,7 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
     reportFailure: false,
   });
   const { canPinProjectGroup, toggleProjectGroupPin } = useProjectPin();
+  const { updateProjectGroup } = useProjectGroupUpdate();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const { scratchEnvironmentId, startScratchThread } = useScratchProject();
   const newThreadContext = useHandleNewThread();
@@ -308,6 +312,7 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
   });
 
   const projectThreadKeys = [
+    ...model.pinned.map((card) => cabinetThreadKey(card.thread)),
     ...model.generalSection.threads.map(cabinetThreadKey),
     ...model.sections.flatMap((section) => section.threads.map(cabinetThreadKey)),
   ];
@@ -427,7 +432,32 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
     if (!readEnvironmentScope(target.environmentId, AuthTerminalOperateScope)) return;
     navigateToFolderTerminal(useFolderTerminalStore.getState().create(target));
   };
-  const openNewTerminalMenu = (
+  // Archives like Settings > Projects, which stays the way back.
+  const hideProject = (group: SidebarProjectSnapshot) => {
+    void updateProjectGroup(
+      group.memberProjects,
+      { archived: true },
+      gt("Failed to hide project"),
+    ).then((result) => {
+      if (result._tag === "Failure") return;
+      toastManager.add({
+        type: "success",
+        title: gt("Project hidden"),
+        description: gt("Unarchive it in Settings > Projects."),
+        actionProps: {
+          children: gt("Undo"),
+          onClick: () =>
+            void updateProjectGroup(
+              group.memberProjects,
+              { archived: false },
+              gt("Failed to unarchive project"),
+            ),
+        },
+      });
+    });
+  };
+  /** `direct` starts the only terminal without a menu; the right-click menu also offers Hide project. */
+  const openProjectMenu = (
     group: SidebarProjectSnapshot,
     position: { x: number; y: number },
     direct: boolean,
@@ -449,9 +479,25 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
       createFolderTerminal(onlyTarget);
       return;
     }
+    const items =
+      !direct && canPinProjectGroup(group)
+        ? [
+            ...menu.items,
+            {
+              id: HIDE_PROJECT_MENU_ID,
+              label: gt("Hide project"),
+              separatorBefore: menu.items.length > 0,
+            },
+          ]
+        : menu.items;
+    if (items.length === 0) return;
     void readLocalApi()
-      ?.contextMenu.show(menu.items, position)
+      ?.contextMenu.show(items, position)
       .then((clicked) => {
+        if (clicked === HIDE_PROJECT_MENU_ID) {
+          hideProject(group);
+          return;
+        }
         const target = clicked === null ? undefined : menu.targets.get(clicked);
         if (target) createFolderTerminal(target);
       });
@@ -590,7 +636,6 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
         key={threadKey}
         thread={thread}
         selected={routeRowThreadKey === threadKey}
-
         jumpLabel={jumpLabelByKey.get(threadKey) ?? null}
         parentKey={parentKey}
         renaming={renamingKey === threadKey}
@@ -644,6 +689,36 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
         }
       >
         <div ref={attachSidebarTree} className="flex flex-col gap-0.5 pb-2" role="presentation">
+          {model.pinned.length > 0 ? (
+            <section
+              data-testid="cabinet-pinned"
+              aria-label={gt("Pinned")}
+              className="mx-1.5 mb-1.5 rounded-lg p-1.5 ring-1 ring-sidebar-border ring-inset"
+            >
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-1.5">
+                {model.pinned.map(({ thread, group }) => {
+                  const threadKey = cabinetThreadKey(thread);
+                  return (
+                    <CabinetPinnedCard
+                      key={threadKey}
+                      thread={thread}
+                      projectName={group.isScratch ? gt("General") : group.displayName}
+                      selected={routeRowThreadKey === threadKey}
+                      jumpLabel={jumpLabelByKey.get(threadKey) ?? null}
+                      parentKey={PINNED_ROW_KEY}
+                      renaming={renamingKey === threadKey}
+                      renameLabel={gt("Thread title")}
+                      revealRef={routeRowThreadKey === threadKey ? revealActiveRow : undefined}
+                      onNavigate={navigateToThread}
+                      onContextMenu={handleThreadContextMenu}
+                      onCommitRename={commitThreadRename}
+                      onCancelRename={() => setRenamingKey(null)}
+                    />
+                  );
+                })}
+              </ul>
+            </section>
+          ) : null}
           {normalizedQuery === "" || model.generalSection.threads.length > 0 ? (
             <div data-testid="cabinet-general-section" className="pb-1">
               <GeneralSectionHeader
@@ -686,7 +761,7 @@ export default function CabinetSidebar({ routeReveal }: { routeReveal: SidebarRo
                   canPin={canPinProjectGroup(section.group)}
                   onToggle={model.toggleProject}
                   onNewThread={startThreadInProject}
-                  onNewTerminal={openNewTerminalMenu}
+                  onOpenMenu={openProjectMenu}
                   onOpenSettings={openProjectSettings}
                   onTogglePin={toggleProjectGroupPin}
                 />

@@ -58,6 +58,8 @@ project** in the command palette and **Settings → Projects** work too. A list 
 while it is open, so a new pin moves up the next time you open it.
 
 Archive a project you are done with in **Settings → Projects**. It leaves the project pickers.
+On web and desktop, you can also right-click a project in the sidebar and choose **Hide project**
+to archive it and remove it from the sidebar.
 Its threads, settings, and files stay as they are, and archived projects still show in the
 Settings project list, marked **Archived**. Choose one there and select **Unarchive** to bring it
 back. On mobile, both are in **Settings → Projects → Organize**.

@@ -61,8 +61,8 @@ export const CabinetProjectRow = memo(function CabinetProjectRow(props: {
   canPin: boolean;
   onToggle: (group: SidebarProjectSnapshot) => void;
   onNewThread: (group: SidebarProjectSnapshot) => void;
-  /** `direct` starts the only choice without a menu. */
-  onNewTerminal: (
+  /** Right-click menu: New terminal choices and Hide project. `direct` starts the only terminal without a menu. */
+  onOpenMenu: (
     group: SidebarProjectSnapshot,
     position: { x: number; y: number },
     direct: boolean,
@@ -89,9 +89,10 @@ export const CabinetProjectRow = memo(function CabinetProjectRow(props: {
         className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md pl-2 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/70"
         onClick={() => props.onToggle(group)}
         onContextMenu={(event) => {
-          if (!canOpenTerminal) return;
+          // Hide project archives the project, which needs the same access as pinning.
+          if (!canOpenTerminal && !props.canPin) return;
           event.preventDefault();
-          props.onNewTerminal(group, { x: event.clientX, y: event.clientY }, false);
+          props.onOpenMenu(group, { x: event.clientX, y: event.clientY }, false);
         }}
       >
         <ChevronRightIcon
@@ -141,7 +142,7 @@ export const CabinetProjectRow = memo(function CabinetProjectRow(props: {
               label={gt("New terminal")}
               onClick={(event) => {
                 const rect = event.currentTarget.getBoundingClientRect();
-                props.onNewTerminal(group, { x: rect.left, y: rect.bottom }, true);
+                props.onOpenMenu(group, { x: rect.left, y: rect.bottom }, true);
               }}
             >
               <TerminalIcon />

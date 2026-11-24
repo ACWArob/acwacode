@@ -23,6 +23,7 @@ import { useSidebarProjectGroups } from "~/hooks/useSidebarProjectGroups";
 import { useDelegatedUnderParent, useQuietThreadShells, useServerConfigs } from "~/state/entities";
 import { useOlderSettledShelf, useOlderSettledShelfGrowth } from "~/state/olderSettledShelf";
 import { resolveProjectExpanded, useUiStateStore } from "~/uiStateStore";
+import { pinnedThreadCards } from "./pinnedThreads.logic";
 
 const PARKED_EXPANDED_KEY = "nabilinc:sidebar:parked-expanded";
 const GENERAL_SECTION_KEY = "general";
@@ -73,8 +74,9 @@ function partitionThreads(input: {
   }
   return {
     visible,
-    // Pinned first; folders keep this input order.
-    projectThreads: [...sortPinnedThreadsForSidebar(pinned), ...sortWorkingThreadsBySend(active)],
+    pinned: sortPinnedThreadsForSidebar(pinned),
+    // Folders keep this input order.
+    projectThreads: sortWorkingThreadsBySend(active),
     snoozed: snoozed.toSorted(
       (left, right) =>
         firstValidTimestampMs(left.snoozedUntil ?? null) -
@@ -84,7 +86,7 @@ function partitionThreads(input: {
   };
 }
 
-/** Projects with their threads, then one Settled and snoozed group, in the order rows render. */
+/** Pinned cards, projects with their threads, then one Settled and snoozed group, in render order. */
 export function useCabinetSidebarModel(input: {
   readonly query: string;
   readonly routeThreadRef: ScopedThreadRef | null;
@@ -179,8 +181,15 @@ export function useCabinetSidebarModel(input: {
       : routeThreadOnly(generalThreadsAll, routeRowThreadKey),
   };
 
+  const shownGroups = projectGroups.filter((group) => !group.isScratch && !group.archived);
+  // Pinned threads leave their folders for the card grid above them.
+  const pinned = pinnedThreadCards(
+    scratchGroup ? [scratchGroup, ...shownGroups] : shownGroups,
+    partition.pinned,
+  );
+
   const sections = groupSidebarThreadsByProject(
-    projectGroups.filter((group) => !group.isScratch && !group.archived),
+    shownGroups,
     partition.projectThreads,
     // While filtering, projects with no match would only be noise.
     () => !isSearching,
@@ -197,6 +206,7 @@ export function useCabinetSidebarModel(input: {
   });
 
   const orderedThreads = [
+    ...pinned.map((card) => card.thread),
     ...generalSection.threads,
     ...sections.flatMap((section) => section.threads),
     ...renderedSnoozed,
@@ -204,6 +214,7 @@ export function useCabinetSidebarModel(input: {
   ];
   return {
     routeRowThreadKey,
+    pinned,
     generalSection,
     sections,
     orderedThreads,

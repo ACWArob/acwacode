@@ -70,6 +70,33 @@ export function RenameInput(props: {
   );
 }
 
+/** The row's status dot input, shared by the thread row and the pinned card. */
+export function useCabinetThreadStatus(thread: EnvironmentThreadShell) {
+  const threadKey = scopedThreadKey(scopeThreadRef(thread.environmentId, thread.id));
+  const localLastVisitedAt = useUiStateStore((state) => state.threadLastVisitedAtById[threadKey]);
+  const lastVisitedAt = resolveThreadLastVisitedAt(thread.lastVisitedAt, localLastVisitedAt);
+  const statusInput = { ...thread, lastVisitedAt };
+  const { status, text } = cabinetRowStatus(resolveSidebarRowStatus(statusInput));
+  return { status, text, unread: status === "idle" && hasUnseenCompletion(statusInput) };
+}
+
+export function CabinetThreadStatusDot(props: ReturnType<typeof useCabinetThreadStatus>) {
+  const m = useMessages();
+  const { status, text, unread } = props;
+  if (status === "idle" && !unread) return null;
+  return (
+    <span
+      role="img"
+      aria-label={text ? m(text) : "Unread"}
+      data-cabinet-status={unread ? "unread" : status}
+      className={cn(
+        "size-1.5 shrink-0 rounded-full",
+        unread ? "bg-sidebar-foreground/70" : DOT_CLASS[status],
+      )}
+    />
+  );
+}
+
 export const CabinetThreadRow = memo(function CabinetThreadRow(props: {
   thread: EnvironmentThreadShell;
   selected: boolean;
@@ -85,14 +112,10 @@ export const CabinetThreadRow = memo(function CabinetThreadRow(props: {
   onCancelRename: () => void;
 }) {
   const { thread, selected, jumpLabel, renaming, revealRef } = props;
-  const m = useMessages();
   const threadRef = scopeThreadRef(thread.environmentId, thread.id);
   const threadKey = scopedThreadKey(threadRef);
-  const localLastVisitedAt = useUiStateStore((state) => state.threadLastVisitedAtById[threadKey]);
-  const lastVisitedAt = resolveThreadLastVisitedAt(thread.lastVisitedAt, localLastVisitedAt);
-  const statusInput = { ...thread, lastVisitedAt };
-  const { status, text } = cabinetRowStatus(resolveSidebarRowStatus(statusInput));
-  const unread = status === "idle" && hasUnseenCompletion(statusInput);
+  const threadStatus = useCabinetThreadStatus(thread);
+  const { unread } = threadStatus;
   const proposalCount = useThreadProposalCount(thread.environmentId, thread.id);
   const displayTitle = thread.title.replace(/^#+\s*/, "") || thread.title;
   const rowClass = cn(
@@ -128,17 +151,7 @@ export const CabinetThreadRow = memo(function CabinetThreadRow(props: {
           {displayTitle}
         </span>
       )}
-      {status !== "idle" || unread ? (
-        <span
-          role="img"
-          aria-label={text ? m(text) : "Unread"}
-          data-cabinet-status={unread ? "unread" : status}
-          className={cn(
-            "size-1.5 shrink-0 rounded-full",
-            unread ? "bg-sidebar-foreground/70" : DOT_CLASS[status],
-          )}
-        />
-      ) : null}
+      <CabinetThreadStatusDot {...threadStatus} />
       <MemoryBadge count={proposalCount} />
       {jumpLabel ? (
         <Kbd aria-hidden data-jump-hint>

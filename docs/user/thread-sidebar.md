@@ -62,6 +62,10 @@ and worktree while you stay in the new thread composer. This requires a Git proj
 
 Pin a thread from its menu to keep it above your active work.
 
+On web and desktop, pinned threads sit in a box at the top of the sidebar as cards, two or three
+per row depending on how wide the sidebar is. Each card shows the title, project, and status;
+click it to open the thread, or right-click it for the same menu as a thread row.
+
 On web and desktop, unpinning, settling, snoozing, and archiving a thread each show
 a notification with **Undo** for five seconds. Undo restores the thread's previous
 state, including its pinned position, and reopens an archived thread you were
