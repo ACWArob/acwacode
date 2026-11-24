@@ -101,18 +101,34 @@ are down, and **Toggle** always needs a second press. Change the chord itself in
 
 ## Voice calls
 
-Talk to an agent hands-free. In the composer, choose the phone button to start a call
-with the thread's agent, or the people button for a **council call**, which sends each
-question to `@all` so every agent answers in turn. The call listens until you stop talking,
-sends what you said, reads the reply aloud, and then listens again. Choose **End call** to stop.
+Talk to agents hands-free. In the composer, choose the phone button to start a call, or the
+people button for a **council call**, which sends each question to `@all` so every agent answers
+in turn. The call listens until you stop talking for about a second, sends what you said as a
+message, reads the reply aloud, and then listens again. Each message asks the agent to keep its
+spoken answer short and leave code and detail in the chat. Choose **End call** to stop.
 
-Calls use your voice input setup above for transcription, so set that up first, and your
-device's built-in voices to speak. Each agent family gets its own voice; the voices
-available depend on your system. Replies are read without code blocks or links, and a long
-reply is cut short with "The rest is on screen."
+Calls use your voice input setup above for transcription, so set that up first; until then the
+call buttons are unavailable. Speech uses your device's built-in voices, and each agent gets its
+own: Claude a British man, Codex and GPT an American man, Gemini an American woman, and DeepSeek
+and other open models a kid. The exact voices depend on your system. Code blocks are skipped,
+links are read as "a link", and a long reply is cut short with "The rest is on screen."
 
-A browser only allows the microphone on `https://` addresses and on the same machine, so
-calls from a phone browser need an HTTPS route such as [Tailscale HTTPS](./remote-access.md#tailscale-https).
+### Call screen
+
+The expand button next to the call buttons opens a full-screen call screen. On a phone it opens
+by itself when you start a call, and it stays open as you switch chats in that tab.
+
+- **Agent bubbles** for Claude, ChatGPT, Gemini, and DeepSeek light up while that agent is
+  speaking. The DeepSeek bubble stands for every open model.
+- **What they're doing** lists the latest things the agents did in this chat: commands, file
+  edits, web searches, subagents, and tools.
+- **Switch chats** by tapping the chat name at the top, then searching chats across all your
+  projects by chat or project name.
+
+A browser only allows the microphone on `https://` addresses and on the same machine, so calls
+from a phone browser need an HTTPS route; see
+[phone access](./acwa-desk.md#phone-browser). Voice calls and the call screen are in the web and
+desktop clients, not the T3 Code mobile app.
 
 ## Improve recognition
 
