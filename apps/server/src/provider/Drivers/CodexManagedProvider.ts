@@ -4,6 +4,7 @@ import {
   TextGenerationError,
   type CodexSettings,
 } from "@t3tools/contracts";
+import { chatGptUsageLimits } from "../CodexChatGptUsage.ts";
 import { preferProbedUsageLimits } from "../codexUsageLimits.ts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -149,7 +150,11 @@ export const makeManagedCodexProvider = Effect.fn("makeManagedCodexProvider")(fu
           const models = yield* chatGptModels(credentials.accessToken, draft.models).pipe(
             Effect.provideService(HttpClient.HttpClient, http),
           );
-          return { ...draft, models };
+          const planLimits = yield* chatGptUsageLimits(
+            credentials.accessToken,
+            base.checkedAt,
+          ).pipe(Effect.provideService(HttpClient.HttpClient, http));
+          return { ...draft, models, ...(planLimits ? { usageLimits: planLimits } : {}) };
         }),
       ),
       Effect.map((draft) =>
