@@ -1,6 +1,6 @@
 # Agent setup
 
-Copies of the agent configuration acwa desk is tuned for. None of it is required; adjust to your plans.
+Copies of the agent configuration kotrai is tuned for. None of it is required; adjust to your plans.
 
 | File                       | Copy to                                                                          | What it does                                                                                                                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -421,6 +421,7 @@ it.each([false, true])(
 
 it("opening a thread or removing its environment closes only its in-app toasts, and disabling notifications closes the rest", async () => {
   await using app = setup();
+  state.mode = "sound";
   state.inApp = true;
   focused = true;
   state.toast

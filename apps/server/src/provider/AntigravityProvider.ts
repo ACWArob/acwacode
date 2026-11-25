@@ -202,7 +202,7 @@ export const makeAntigravityProvider = Effect.fn("makeAntigravityProvider")(func
         auth: { status: "unknown", ...(options.auth ? { type: options.auth.type } : {}) },
         message: settings.enabled
           ? "Checking Antigravity availability."
-          : "Antigravity is disabled in acwa desk settings.",
+          : "Antigravity is disabled in kotrai settings.",
       },
     }),
     setup: { canAuthenticate: true, canInstall: true },

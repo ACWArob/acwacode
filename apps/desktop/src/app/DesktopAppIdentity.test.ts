@@ -200,9 +200,9 @@ describe("DesktopAppIdentity", () => {
 
         const runtimeName = calls.setName[0];
         assert.isDefined(runtimeName);
-        assert.equal(runtimeName, `acwa desk ${stage}`);
+        assert.equal(runtimeName, `kotrai ${stage}`);
         assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `acwa desk (${stage})`);
+        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `kotrai (${stage})`);
       }),
       { calls, environment },
     );

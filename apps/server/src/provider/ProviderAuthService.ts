@@ -83,7 +83,7 @@ export const makeProviderAuthService = Effect.gen(function* () {
         instanceId,
         operation,
         detail: instance
-          ? "This provider does not support sign-in in acwa desk."
+          ? "This provider does not support sign-in in kotrai."
           : "This provider instance is no longer available.",
       });
     }

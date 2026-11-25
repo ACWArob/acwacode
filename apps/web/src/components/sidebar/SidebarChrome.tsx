@@ -146,7 +146,7 @@ function SidebarBrandMark({ onBackdrop }: { onBackdrop: boolean }) {
         onBackdrop ? "text-white" : "text-foreground",
       )}
     >
-      acwa desk
+      kotrai
     </span>
   );
 }

@@ -54,7 +54,7 @@ export async function startNiriCaptureShortcut(
       }),
     ]);
     if (result !== RequestNameReply.PRIMARY_OWNER)
-      throw new Error("Another acwa desk instance already owns the capture shortcut.");
+      throw new Error("Another kotrai instance already owns the capture shortcut.");
     return close;
   } catch (error) {
     close();

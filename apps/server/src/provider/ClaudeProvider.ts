@@ -698,7 +698,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Claude is disabled in acwa desk settings.",
+        message: "Claude is disabled in kotrai settings.",
       },
     });
   }
@@ -934,7 +934,7 @@ export const makePendingClaudeProvider = Effect.fn("ClaudeProvider.makePendingCl
           version: null,
           status: "warning",
           auth: { status: "unknown" },
-          message: "Claude is disabled in acwa desk settings.",
+          message: "Claude is disabled in kotrai settings.",
         },
       });
     }

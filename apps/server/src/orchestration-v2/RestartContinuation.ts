@@ -335,8 +335,8 @@ export const continueRestartedRun = Effect.fn("RestartContinuation.continueResta
           source: { kind: "system" },
           outcome: "updated",
           summary: note.settled
-            ? "acwa desk restarted and stopped background work"
-            : "acwa desk restarted and resumed this turn",
+            ? "kotrai restarted and stopped background work"
+            : "kotrai restarted and resumed this turn",
           detail: text,
         },
         attachments: [],

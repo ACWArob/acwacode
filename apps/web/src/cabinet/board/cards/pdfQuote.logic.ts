@@ -49,7 +49,7 @@ export function buildQuoteCapture(input: {
     title: pdfQuoteTitle(quote.text),
     why: input.why?.trim() || `From ${locator}`,
     context: locator,
-    via: "acwa desk",
+    via: "kotrai",
     ...(projectRef ? { projectId: projectRef } : {}),
     ...(quote.source.kind === "cabinet" ? { links: [quote.source.itemId] } : {}),
   };

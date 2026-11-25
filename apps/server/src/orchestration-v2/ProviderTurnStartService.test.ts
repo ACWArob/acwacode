@@ -1540,7 +1540,7 @@ effectIt.effect(
           failure: {
             class: "unknown",
             message:
-              "acwa desk could not start this turn. Send the message again; if it keeps failing, check the server logs.",
+              "kotrai could not start this turn. Send the message again; if it keeps failing, check the server logs.",
           },
         },
       ]);

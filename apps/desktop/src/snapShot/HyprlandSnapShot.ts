@@ -96,7 +96,7 @@ export class HyprlandCaptureSetup {
       const bundle = await regularFile(this.paths.bundle);
       if (!bundle)
         throw new Error(
-          "The Hyprland capture helper is missing from this build. Update or reinstall acwa desk.",
+          "The Hyprland capture helper is missing from this build. Update or reinstall kotrai.",
         );
       if (!installed.equals(bundle))
         return {

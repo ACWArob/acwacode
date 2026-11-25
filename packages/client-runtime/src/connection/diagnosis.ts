@@ -104,7 +104,7 @@ function headline(host: string, located: Located, failure: ConnectionAttemptErro
     case "approval_pending":
       return `${host} is waiting for someone to approve this device`;
     case "outdated":
-      return `${host} runs an older acwa desk`;
+      return `${host} runs an older kotrai`;
     case "clock_skew":
       return "This device's clock is off";
     case "not_linked":
@@ -119,9 +119,9 @@ function headline(host: string, located: Located, failure: ConnectionAttemptErro
     case "tunnel_down":
       return `${host}'s tunnel is offline`;
     case "origin_unreachable":
-      return `Tunnel works, but acwa desk on ${host} did not answer`;
+      return `Tunnel works, but kotrai on ${host} did not answer`;
     case "invalid_response":
-      return `acwa desk on ${host} sent an unexpected answer`;
+      return `kotrai on ${host} sent an unexpected answer`;
     case "dns":
       return `${host}'s tunnel address did not resolve`;
     case "tls":
@@ -150,8 +150,8 @@ function headline(host: string, located: Located, failure: ConnectionAttemptErro
         : `T3 Connect could not reach ${host}'s tunnel`;
     case "server":
       return failure?.reason === "authentication" || failure?.reason === "permission"
-        ? `acwa desk on ${host} did not accept this device`
-        : `acwa desk on ${host} did not answer`;
+        ? `kotrai on ${host} did not accept this device`
+        : `kotrai on ${host} did not answer`;
   }
 }
 
@@ -159,11 +159,11 @@ function steps(host: string, located: Located, failure: ConnectionAttemptError |
   const checkHost = `On ${host}, check Settings > Sharing & access or run \`t3 connect status\`.`;
   switch (located.cause) {
     case "offline":
-      return ["Connect this device to the internet. acwa desk reconnects on its own."];
+      return ["Connect this device to the internet. kotrai reconnects on its own."];
     case "session_pending":
       return [
-        "Wait a moment. acwa desk retries on its own.",
-        "If it keeps waiting, reload or restart acwa desk on this device.",
+        "Wait a moment. kotrai retries on its own.",
+        "If it keeps waiting, reload or restart kotrai on this device.",
       ];
     case "approval_pending": {
       const code =
@@ -175,7 +175,7 @@ function steps(host: string, located: Located, failure: ConnectionAttemptError |
       ];
     }
     case "outdated":
-      return [`Update acwa desk on ${host}.`];
+      return [`Update kotrai on ${host}.`];
     case "clock_skew":
       return [`Turn on automatic date and time on this device and on ${host}, then retry.`];
     case "not_linked":
@@ -184,10 +184,10 @@ function steps(host: string, located: Located, failure: ConnectionAttemptError |
         `On ${host}, open Settings > Sharing & access and turn T3 Connect on.`,
       ];
     case "tunnel_pending":
-      return ["Wait a minute. acwa desk retries on its own.", checkHost];
+      return ["Wait a minute. kotrai retries on its own.", checkHost];
     case "relay_error":
       return [
-        "Wait a few minutes. acwa desk retries on its own.",
+        "Wait a few minutes. kotrai retries on its own.",
         "If it keeps failing, copy the diagnostics and report it.",
       ];
     case "tunnel_not_enabled":
@@ -195,13 +195,13 @@ function steps(host: string, located: Located, failure: ConnectionAttemptError |
     case "released":
     case "tunnel_down":
       return [
-        `Make sure ${host} is awake and acwa desk is running on it.`,
+        `Make sure ${host} is awake and kotrai is running on it.`,
         checkHost,
         `A VPN or Tailscale exit node on ${host} can block the tunnel (port 7844). Turn it off or allow the tunnel.`,
       ];
     case "origin_unreachable":
     case "invalid_response":
-      return [`Open or restart acwa desk on ${host}.`, checkHost];
+      return [`Open or restart kotrai on ${host}.`, checkHost];
     // The relay saw these on its way to the host, so the fix is on the host.
     case "dns":
     case "tls":
@@ -215,7 +215,7 @@ function steps(host: string, located: Located, failure: ConnectionAttemptError |
   switch (located.hop) {
     case "device":
       return [
-        "Restart acwa desk on this device.",
+        "Restart kotrai on this device.",
         `If it keeps failing, remove ${host} from this device and add it again.`,
       ];
     case "relay":
@@ -236,7 +236,7 @@ function steps(host: string, located: Located, failure: ConnectionAttemptError |
         : [`Make sure ${host} is awake and online.`, checkHost];
     case "server":
       return [
-        `Make sure acwa desk is running on ${host}.`,
+        `Make sure kotrai is running on ${host}.`,
         "Retry. If it keeps failing, copy the diagnostics.",
       ];
   }
@@ -310,7 +310,7 @@ function hopLabel(hop: ConnectionHop, host: string): string {
     case "tunnel":
       return `${host} tunnel`;
     case "server":
-      return `acwa desk on ${host}`;
+      return `kotrai on ${host}`;
   }
 }
 
@@ -381,7 +381,7 @@ const HOP_MARK = { ok: "ok", failed: "FAILED", unchecked: "not checked" } as con
 /** One plain-text block for bug reports. */
 export function connectionDiagnosisText(hostLabel: string, diagnosis: ConnectionDiagnosis): string {
   return [
-    `acwa desk connection to ${hostLabel}: ${diagnosis.headline}`,
+    `kotrai connection to ${hostLabel}: ${diagnosis.headline}`,
     "",
     ...diagnosis.hops.map((hop) => `${hop.label}: ${HOP_MARK[hop.result]}`),
     "",

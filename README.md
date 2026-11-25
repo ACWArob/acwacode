@@ -1,38 +1,39 @@
-<h1 align="center">acwa desk</h1>
+<h1 align="center">kotrai</h1>
+<p align="center"><i>Knights of the Round Table AI</i></p>
 
 <p align="center">One app for all your coding and chat agents: Claude, Codex, Gemini, and open models like DeepSeek, Kimi and Qwen, with channels, a board for your docs, study mode, voice calls, and phone access.</p>
 
 <p align="center">
-  <img src="./docs/screenshots/board.png" width="100%" alt="acwa desk board: the #clamp-helper channel as the main card with a note, an agent turn, and a later note in posting order, the README and a decisions note open as Markdown cards beside it, and the composer showing the Note toggle and Replying to the last agent" />
+  <img src="./docs/screenshots/board.png" width="100%" alt="kotrai board: the #clamp-helper channel as the main card with a note, an agent turn, and a later note in posting order, the README and a decisions note open as Markdown cards beside it, and the composer showing the Note toggle and Replying to the last agent" />
 </p>
 
-acwa desk runs the agents already on your machine (Claude Code, Codex, Gemini through Antigravity, OpenCode, and other ACP agents) on your own subscriptions. Each project gets `#channels` where you just type: acwa desk picks the right agent, or you `@` one, several, or all of them. A board beside the chat holds the project's notes, PDFs, and diffs, and you can reach all of it from your phone or by voice.
+kotrai runs the agents already on your machine (Claude Code, Codex, Gemini through Antigravity, OpenCode, and other ACP agents) on your own subscriptions. Each project gets `#channels` where you just type: kotrai picks the right agent, or you `@` one, several, or all of them. A board beside the chat holds the project's notes, PDFs, and diffs, and you can reach all of it from your phone or by voice.
 
-> **Credits.** acwa desk is a fork of [nabilcode](https://github.com/latrael/nabilcode) by Nabil (latrael), itself a fork of [T3 Code](https://github.com/pingdotgg/t3code). Thank you, Nabil, for the app and its style.
+> **Credits.** kotrai is a fork of [nabilcode](https://github.com/latrael/nabilcode) by Nabil (latrael), itself a fork of [T3 Code](https://github.com/pingdotgg/t3code). Thank you, Nabil, for the app and its style.
 
-## What acwa desk adds
+## What kotrai adds
 
-**No `@` needed, and one click to switch.** A message without an `@mention` goes to an agent picked from what it says: code to Codex, research to Gemini, and anything else to the channel's last agent, or Claude Opus in a new channel. Click **Replying to …** next to send to keep a chat on any model you choose, ask **Everyone** (they discuss and Claude sums up), or call the **Team** (each agent weighs in from its role, then Claude writes the next steps with owners and starts them). The **Note** toggle posts a message without running any agent. [Automatic agent routing](./docs/user/acwa-desk.md#automatic-agent-routing)
+**No `@` needed, and one click to switch.** A message without an `@mention` goes to an agent picked from what it says: code to Codex, research to Gemini, and anything else to the channel's last agent, or Claude Opus in a new channel. Click **Replying to …** next to send to keep a chat on any model you choose, ask **Everyone** (they discuss and Claude sums up), or call the **Team** (each agent weighs in from its role, then Claude writes the next steps with owners and starts them). The **Note** toggle posts a message without running any agent. [Automatic agent routing](./docs/user/kotrai.md#automatic-agent-routing)
 
-**Full force, with skills.** Claude Opus leads and hands research, code, and review to other agents in parallel through the `delegate_task` tool. A short "Full force" section in `~/.claude/CLAUDE.md` sets the rules: which plan carries most of the work, paid plans before open models, at most three helpers at once, and a task that hits a usage limit goes to another agent. Agents also get coding skills (systematic debugging, test-first coding, code review, checking work before calling it done), and the lead names the right one for each job. [Full force](./docs/user/acwa-desk.md#full-force)
+**Full force, with skills.** Claude Opus leads and hands research, code, and review to other agents in parallel through the `delegate_task` tool. A short "Full force" section in `~/.claude/CLAUDE.md` sets the rules: which plan carries most of the work, paid plans before open models, at most three helpers at once, and a task that hits a usage limit goes to another agent. Agents also get coding skills (systematic debugging, test-first coding, code review, checking work before calling it done), and the lead names the right one for each job. [Full force](./docs/user/kotrai.md#full-force)
 
 **Several agents, one message.** `@claude @codex review this` or `@all` sends to each agent in turn as one message, and later agents see the earlier answers.
 
 **Voice calls.** On a phone, the browser version opens straight into a full-screen call screen; on the desktop, the phone button in the composer starts a hands-free call: talk, then pause or tap **Done talking**, and the agent answers out loud. The people button starts a **council call** where every agent answers in its own voice. The call screen shows agent bubbles that light up as each one speaks, a live "What they're doing" feed, and a chat picker that searches every project. [Voice calls](./docs/user/voice-input.md#voice-calls)
 
-**Phone access.** Pair the official T3 Code app, or add the browser version to your home screen, over Tailscale. The browser version has routing and voice calls, and its HTTPS route lets the phone use the microphone. [Phone access](./docs/user/acwa-desk.md#phone-access)
+**Phone access.** Pair the official T3 Code app, or add the browser version to your home screen, over Tailscale. The browser version has routing and voice calls, and its HTTPS route lets the phone use the microphone. [Phone access](./docs/user/kotrai.md#phone-access)
 
-**Open models.** Add OpenCode from the ACP Registry with an OpenRouter key to use DeepSeek, Kimi, Qwen, GLM, MiniMax, and more. [Open models through OpenCode](./docs/user/acwa-desk.md#open-models-through-opencode)
+**Open models.** Add OpenCode from the ACP Registry with an OpenRouter key to use DeepSeek, Kimi, Qwen, GLM, MiniMax, and more. [Open models through OpenCode](./docs/user/kotrai.md#open-models-through-opencode)
 
 **Usage that makes sense.** The Usage page opens on **Plan left**, how much of each subscription remains. The API-equivalent figure is labeled **API value**, an estimate rather than a bill. [Usage and limits](./docs/user/usage.md)
 
-**A real Mac app.** Build a DMG, drag **acwa desk** into Applications, and start it at login. [Install as a Mac app](./docs/user/acwa-desk.md#install-as-a-mac-app)
+**A real Mac app.** Build a DMG, drag **kotrai** into Applications, and start it at login. [Install as a Mac app](./docs/user/kotrai.md#install-as-a-mac-app)
 
-**Bring your history.** Turn Claude, ChatGPT, and Gemini exports into Markdown folders you can open as a project. [Import chat history](./docs/user/acwa-desk.md#import-chat-history)
+**Bring your history.** Turn Claude, ChatGPT, and Gemini exports into Markdown folders you can open as a project. [Import chat history](./docs/user/kotrai.md#import-chat-history)
 
 **Study mode.** Agents can draw multiple-choice quizzes and flashcards right in the thread ("make 10 MCQs from this PDF").
 
-**Scheduled tasks.** Run a prompt on a schedule from **Settings → Scheduled tasks**, or ask an agent to set one up. [Scheduled tasks](./docs/user/acwa-desk.md#scheduled-tasks)
+**Scheduled tasks.** Run a prompt on a schedule from **Settings → Scheduled tasks**, or ask an agent to set one up. [Scheduled tasks](./docs/user/kotrai.md#scheduled-tasks)
 
 Also: a seagreen theme, Claude in Chrome on by default, and a native arm64/x64 install fix for Macs running Terminal under Rosetta.
 
@@ -46,31 +47,31 @@ Also: a seagreen theme, Claude in Chrome on by default, and a native arm64/x64 i
    vp run dist:desktop:dmg:arm64
    ```
 
-   Open the DMG in `release/` and drag **acwa desk.app** into **Applications**. Details, Intel Macs, and login items: [Install as a Mac app](./docs/user/acwa-desk.md#install-as-a-mac-app).
+   Open the DMG in `release/` and drag **kotrai.app** into **Applications**. Details, Intel Macs, and login items: [Install as a Mac app](./docs/user/kotrai.md#install-as-a-mac-app).
 
-2. **Sign in to your agents.** acwa desk uses the CLIs you are signed in to: `claude auth login` for Claude Code, `codex login` for Codex, and the `agy` CLI for Gemini through Antigravity. Check them in **Settings → Providers**, and add [OpenCode](./docs/user/acwa-desk.md#open-models-through-opencode) for open models.
+2. **Sign in to your agents.** kotrai uses the CLIs you are signed in to: `claude auth login` for Claude Code, `codex login` for Codex, and the `agy` CLI for Gemini through Antigravity. Check them in **Settings → Providers**, and add [OpenCode](./docs/user/kotrai.md#open-models-through-opencode) for open models.
 
-3. **Set up your phone.** Join the Mac and phone to the same Tailscale tailnet, publish acwa desk over HTTPS, and pair:
+3. **Set up your phone.** Join the Mac and phone to the same Tailscale tailnet, publish kotrai over HTTPS, and pair:
 
    ```bash
    tailscale serve --bg --https=443 http://127.0.0.1:3773
    node apps/server/src/bin.ts pair --ttl 60m
    ```
 
-   Open the pairing link on the phone with its address changed to your Mac's `https://<machine>.<tailnet>.ts.net`, then add it to the home screen. For the official T3 Code app instead, see [Phone access](./docs/user/acwa-desk.md#phone-access).
+   Open the pairing link on the phone with its address changed to your Mac's `https://<machine>.<tailnet>.ts.net`, then add it to the home screen. For the official T3 Code app instead, see [Phone access](./docs/user/kotrai.md#phone-access).
 
 ## How it works
 
-The Mac runs the acwa desk server, which owns your projects, threads, and agent sessions. The desktop app, browser tabs, and phones are clients that connect to it over WebSocket, so a conversation started on one shows up on all of them. Agents run on the Mac as their own CLIs (Claude Code, Codex, Antigravity, OpenCode), signed in to your own plans. Tailscale carries the connection when you're away from the Mac.
+The Mac runs the kotrai server, which owns your projects, threads, and agent sessions. The desktop app, browser tabs, and phones are clients that connect to it over WebSocket, so a conversation started on one shows up on all of them. Agents run on the Mac as their own CLIs (Claude Code, Codex, Antigravity, OpenCode), signed in to your own plans. Tailscale carries the connection when you're away from the Mac.
 
 ## From nabilcode
 
-acwa desk keeps everything nabilcode built on top of T3 Code:
+kotrai keeps everything nabilcode built on top of T3 Code:
 
 ### Channels
 
 - **`#channels` per project.** Each project in the sidebar holds its channels. **General** channels sit outside any project for everything else.
-- **`@` any agent.** `@claude`, `@codex`, `@gemini` (or `@antigravity`), `@grok`, or `@kiro` runs that agent with the channel as context. You can also pick a specific model from the `@` menu. Without an `@`, acwa desk [picks the agent for you](./docs/user/acwa-desk.md#automatic-agent-routing). Every reply shows which agent wrote it.
+- **`@` any agent.** `@claude`, `@codex`, `@gemini` (or `@antigravity`), `@grok`, or `@kiro` runs that agent with the channel as context. You can also pick a specific model from the `@` menu. Without an `@`, kotrai [picks the agent for you](./docs/user/kotrai.md#automatic-agent-routing). Every reply shows which agent wrote it.
 - **Keep talking to the last agent.** Plain follow-ups go to the channel's last agent with the same model and effort. The composer says who you're replying to. Press **Note** to post notes without running an agent, and press it again to go back.
 - **Effort per mention.** When you `@` a model, its reasoning control (Low to Max, plus Fast where the model supports it) appears in the composer for that message.
 - **Notes stay in order.** Notes and agent turns appear in the order you posted them.
@@ -106,7 +107,7 @@ acwa desk keeps everything nabilcode built on top of T3 Code:
 
 ### Agents and usage
 
-- **Your subscriptions.** acwa desk drives the agents you are already signed in to. It does not resell tokens.
+- **Your subscriptions.** kotrai drives the agents you are already signed in to. It does not resell tokens.
 - **Limits at a glance.** **Usage → Plan left** shows session and weekly quota, with reset times, for Codex, Claude, and Antigravity. Antigravity's limits come from the `agy` CLI's own sign-in in your system keychain, so macOS asks for permission the first time.
 - **Antigravity subagents.** Antigravity's subagent activity streams into the channel, nested under the step that started it.
 - **Bring your history.** The Welcome page imports Claude Code and Codex history, and Antigravity conversations started in Zed. Imported Antigravity threads continue with their full context.
@@ -118,11 +119,11 @@ acwa desk keeps everything nabilcode built on top of T3 Code:
 
 ## Develop
 
-To work on acwa desk itself, run it from source.
+To work on kotrai itself, run it from source.
 
 ### 1. Install the toolchain
 
-acwa desk uses [Vite+](https://viteplus.dev). Install its `vp` command, then install dependencies from the repository root:
+kotrai uses [Vite+](https://viteplus.dev). Install its `vp` command, then install dependencies from the repository root:
 
 ```bash
 curl -fsSL https://vite.plus | bash
@@ -174,10 +175,10 @@ pnpm cabinet start --library ~/Cabinet-Sandbox
 
 In Cabinet, under **Settings → Agents**, create two tokens:
 
-- a **harness token** with **Can review memory proposals** turned on. acwa desk uses it for reading, writing, and reviewing proposals. Agents never receive it.
+- a **harness token** with **Can review memory proposals** turned on. kotrai uses it for reading, writing, and reviewing proposals. Agents never receive it.
 - a plain **agent token**. Agents use it for Cabinet's MCP tools.
 
-Then in acwa desk, go to **Settings → Cabinet**. Turn Cabinet on, set the base URL (use `http://127.0.0.1:4747` rather than `localhost`), and paste both tokens. The status should read **Connected**, and **Agent tools** should read **Active**.
+Then in kotrai, go to **Settings → Cabinet**. Turn Cabinet on, set the base URL (use `http://127.0.0.1:4747` rather than `localhost`), and paste both tokens. The status should read **Connected**, and **Agent tools** should read **Active**.
 
 ### 4. Try it
 
@@ -203,4 +204,4 @@ cd apps/web && vp exec playwright install chromium
 
 ## License
 
-[MIT](./LICENSE). acwa desk is forked from [nabilcode](https://github.com/latrael/nabilcode) by Nabil (latrael), itself forked from [T3 Code](https://github.com/pingdotgg/t3code) by T3 Tools.
+[MIT](./LICENSE). kotrai is forked from [nabilcode](https://github.com/latrael/nabilcode) by Nabil (latrael), itself forked from [T3 Code](https://github.com/pingdotgg/t3code) by T3 Tools.

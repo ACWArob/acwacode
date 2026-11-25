@@ -77,11 +77,11 @@ export function resolveProviderCompatibility(
       : "unknown";
   const message =
     status === "broken"
-      ? "This provider version is known to be incompatible with this acwa desk release."
+      ? "This provider version is known to be incompatible with this kotrai release."
       : status === "unsupported"
-        ? "This provider version is outside the supported range for this acwa desk release."
+        ? "This provider version is outside the supported range for this kotrai release."
         : status === "graceful"
-          ? "This provider version has limited compatibility with this acwa desk release."
+          ? "This provider version has limited compatibility with this kotrai release."
           : null;
   const recommendedVersion = policy.recommendedVersion ?? null;
   const recommendedRange = policy.recommendedRange ?? null;

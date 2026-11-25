@@ -21,7 +21,7 @@ export function StandalonePageHeader({
   return (
     <>
       <div className="flex items-baseline justify-between gap-3 text-muted-foreground">
-        <span className="text-lg font-medium tracking-tight text-foreground">acwa desk</span>
+        <span className="text-lg font-medium tracking-tight text-foreground">kotrai</span>
         {context ? <span className="text-sm">{context}</span> : null}
       </div>
       <h1 className="mt-6 text-xl leading-tight font-semibold">{title}</h1>

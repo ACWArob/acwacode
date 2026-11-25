@@ -908,7 +908,7 @@ const makePendingCodexProvider = Effect.fn("CodexProvider.makePendingCodexProvid
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Codex is disabled in acwa desk settings.",
+        message: "Codex is disabled in kotrai settings.",
       },
     });
   }
@@ -1009,7 +1009,7 @@ export const checkCodexProviderStatus = Effect.fn("checkCodexProviderStatus")(fu
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Codex is disabled in acwa desk settings.",
+        message: "Codex is disabled in kotrai settings.",
       },
     });
   }

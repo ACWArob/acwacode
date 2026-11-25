@@ -28,7 +28,7 @@ export class ManagedPolicyFileError extends Schema.TaggedError<ManagedPolicyFile
   override readonly [Runtime.errorExitCode] = SERVER_EXIT_CODE_MANAGED_POLICY;
 
   override get message(): string {
-    return `acwa desk cannot use the managed policy at ${this.path}: ${this.reason}. It will not start until an administrator fixes this.`;
+    return `kotrai cannot use the managed policy at ${this.path}: ${this.reason}. It will not start until an administrator fixes this.`;
   }
 }
 
@@ -427,7 +427,7 @@ function windowsPolicyDocument(
     }
     if (Object.hasOwn(WINDOWS_POLICY_GROUPS, value.name)) continue;
     if (!Object.hasOwn(WINDOWS_POLICY_VALUES, value.name)) {
-      return { error: `${value.name} is not an acwa desk policy value` };
+      return { error: `${value.name} is not an kotrai policy value` };
     }
     const field = WINDOWS_POLICY_VALUES[value.name as keyof typeof WINDOWS_POLICY_VALUES];
     if (field.type === "boolean") {
@@ -454,7 +454,7 @@ function windowsPolicyDocument(
   if (Object.keys(document).length === 1) return { document: undefined };
   // The schema would name `["organization"]`, which an admin cannot map to a Group Policy setting.
   if (document.organization === undefined) {
-    return { error: "set the Organization policy whenever another acwa desk policy is set" };
+    return { error: "set the Organization policy whenever another kotrai policy is set" };
   }
   return { document };
 }
@@ -528,7 +528,7 @@ const readPlatformPolicy = Effect.fnUntraced(function* (
               path,
               reason:
                 cause.code === undefined
-                  ? "this acwa desk install cannot load its registry reader; reinstall acwa desk"
+                  ? "this kotrai install cannot load its registry reader; reinstall kotrai"
                   : `the registry cannot be read (${cause.message})`,
               cause,
             }),
@@ -561,11 +561,11 @@ const readPlatformPolicy = Effect.fnUntraced(function* (
       const list = Object.keys(WINDOWS_POLICY_LISTS).find(
         (name) => name.toLowerCase() === subkey.toLowerCase(),
       );
-      if (list === undefined) return yield* refuse(`${subkey} is not an acwa desk policy key`);
+      if (list === undefined) return yield* refuse(`${subkey} is not an kotrai policy key`);
       const checkboxes = yield* readKey(`${WINDOWS_POLICY_SUBKEY}\\${subkey}`);
       if (checkboxes === undefined) continue;
       if (checkboxes.subkeys.length > 0) {
-        return yield* refuse(`${subkey}\\${checkboxes.subkeys[0]} is not an acwa desk policy key`);
+        return yield* refuse(`${subkey}\\${checkboxes.subkeys[0]} is not an kotrai policy key`);
       }
       values.push(...checkboxes.values.map((value) => ({ ...value, key: list })));
     }

@@ -76,7 +76,7 @@ const make = Effect.gen(function* () {
             mode: "off",
             feedUrl: undefined,
             allowNightly: false,
-            message: `Updates are off because acwa desk cannot use the managed policy at ${error.path}. Contact your administrator.`,
+            message: `Updates are off because kotrai cannot use the managed policy at ${error.path}. Contact your administrator.`,
           }),
         ),
     }),

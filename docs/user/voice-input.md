@@ -127,7 +127,7 @@ by itself when you start a call, and it stays open as you switch chats in that t
 
 A browser only allows the microphone on `https://` addresses and on the same machine, so calls
 from a phone browser need an HTTPS route; see
-[phone access](./acwa-desk.md#phone-browser). Voice calls and the call screen are in the web and
+[phone access](./kotrai.md#phone-browser). Voice calls and the call screen are in the web and
 desktop clients, not the T3 Code mobile app.
 
 ## Improve recognition

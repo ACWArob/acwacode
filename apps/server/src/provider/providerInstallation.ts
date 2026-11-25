@@ -110,7 +110,7 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
       return yield* new ProviderSetupError({
         instanceId,
         operation,
-        detail: "Choose managed setup to install Codex in acwa desk.",
+        detail: "Choose managed setup to install Codex in kotrai.",
       });
     }
     if (managedOnly && config.binaryPath && (!isCodex || config.binaryPath !== "codex")) {
@@ -118,7 +118,7 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
         instanceId,
         operation,
         detail:
-          "This instance uses a custom executable. Clear its binary path to manage installation in acwa desk.",
+          "This instance uses a custom executable. Clear its binary path to manage installation in kotrai.",
       });
     }
     return { installation, driver: instance.driverKind };

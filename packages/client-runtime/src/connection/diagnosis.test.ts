@@ -55,7 +55,7 @@ const results = (state: SupervisorConnectionState, via?: "relay" | "direct") =>
 describe("presentConnectionDiagnosis", () => {
   it("tells a working tunnel apart from T3 Code not answering", () => {
     expect(diagnose(backoff(unavailable("origin_unreachable")))?.headline).toBe(
-      "Tunnel works, but acwa desk on Mac mini did not answer",
+      "Tunnel works, but kotrai on Mac mini did not answer",
     );
     expect(results(backoff(unavailable("origin_unreachable")), "direct")).toEqual([
       "device:ok",

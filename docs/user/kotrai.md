@@ -1,7 +1,7 @@
-# acwa desk features
+# kotrai features
 
-acwa desk is a fork of [nabilcode](https://github.com/latrael/nabilcode) by Nabil (latrael),
-itself a fork of T3 Code. This page covers what acwa desk adds on top. Voice calls are in
+kotrai is a fork of [nabilcode](https://github.com/latrael/nabilcode) by Nabil (latrael),
+itself a fork of T3 Code. This page covers what kotrai adds on top. Voice calls are in
 [Voice input](./voice-input.md#voice-calls), and plan limits are in
 [Usage and limits](./usage.md#track-subscription-limits).
 
@@ -48,14 +48,14 @@ another. Projects with work in progress come first, and the search box filters b
 
 Above the projects, a now-playing strip shows the chat that just finished (or one still running)
 in a large card, next to a row of other running chats and chats that finished in the last hour.
-Turn on **Follow finished tasks** in the dashboard header or the command palette, and acwa desk
+Turn on **Follow finished tasks** in the dashboard header or the command palette, and kotrai
 opens each chat as it finishes, on this device only. It waits while you are typing and switches
 at most once every few seconds.
 
 ## Full force
 
 In full force, Claude Opus leads: it splits the work and hands parts to other agents in
-parallel with the `delegate_task` tool. Agents get this tool only when acwa desk runs them. Each
+parallel with the `delegate_task` tool. Agents get this tool only when kotrai runs them. Each
 child appears in its own thread, and the lead reads the results and combines them.
 
 You turn it on and set the rules in your global Claude instructions, `~/.claude/CLAUDE.md`. Add a
@@ -91,7 +91,7 @@ values", "extract these rows"), reads the report, and decides the next step.
 
 ### Skills
 
-Agents work better with skills, folders of instructions they load when a task matches. acwa desk
+Agents work better with skills, folders of instructions they load when a task matches. kotrai
 agents read them from `~/.claude/skills` (Claude), `~/.agents/skills` (Codex and Gemini CLI) and
 `~/.gemini/antigravity-cli/skills` (Antigravity). A good starting set for coding is
 [Superpowers](https://github.com/obra/superpowers): `systematic-debugging`,
@@ -145,7 +145,7 @@ Install Tailscale on both and sign in to the same tailnet. There are two ways to
 1. Install T3 Code from the
    [App Store](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824) or
    [Google Play](https://play.google.com/store/apps/details?id=com.t3tools.t3code).
-2. On the Mac, forward a tailnet port to acwa desk:
+2. On the Mac, forward a tailnet port to kotrai:
 
    ```bash
    tailscale serve --bg --tcp 3774 tcp://127.0.0.1:3773
@@ -159,7 +159,7 @@ Install Tailscale on both and sign in to the same tailnet. There are two ways to
 
 1. Your tailnet needs MagicDNS and HTTPS certificates turned on; see
    [Tailscale's HTTPS setup](https://tailscale.com/docs/how-to/set-up-https-certificates).
-2. On the Mac, publish acwa desk over HTTPS:
+2. On the Mac, publish kotrai over HTTPS:
 
    ```bash
    tailscale serve --bg --https=443 http://127.0.0.1:3773
@@ -175,7 +175,7 @@ A browser only allows the microphone on HTTPS, so voice input and calls need thi
 
 ### Pairing links
 
-From a checkout of this repository on the Mac, with acwa desk running:
+From a checkout of this repository on the Mac, with kotrai running:
 
 ```bash
 node apps/server/src/bin.ts pair --ttl 60m
@@ -198,7 +198,7 @@ Revoke a paired phone in **Settings → Sharing & access**. See
   Tailscale's. Run `tailscale set --accept-dns=false` on the Mac. Use the Mac's Tailscale IP
   instead of its MagicDNS name if a name stops resolving.
 - **The phone can't connect.** Check that both devices show as connected in Tailscale and that
-  acwa desk is running on the Mac.
+  kotrai is running on the Mac.
 
 ## Split screen across projects
 
@@ -226,7 +226,7 @@ thing to improve. If the chat has no thread yet, the text lands in the composer 
 
 ## Install as a Mac app
 
-Build acwa desk from this repository and install it like any other app:
+Build kotrai from this repository and install it like any other app:
 
 1. Install [Vite+](https://viteplus.dev) (`curl -fsSL https://vite.plus | bash`) and Rust from
    [rustup.rs](https://rustup.rs).
@@ -240,7 +240,7 @@ Build acwa desk from this repository and install it like any other app:
    On an Intel Mac, use `vp run dist:desktop:dmg:x64`. If the build asks for a Rust target, run
    the `rustup target add` command it prints.
 
-3. Open the DMG in `release/` and drag **acwa desk.app** into **Applications**.
+3. Open the DMG in `release/` and drag **kotrai.app** into **Applications**.
 4. To start it when you log in, add it in **System Settings → General → Login Items**.
 
 To update, pull the latest changes and repeat steps 2 and 3.
@@ -260,7 +260,7 @@ Turn your Claude, ChatGPT, and Gemini history into Markdown that agents can read
    node scripts/import-chat-exports.ts <export.zip | export folder | file.json> <output folder>
    ```
 
-3. Add the output folder as a project in acwa desk.
+3. Add the output folder as a project in kotrai.
 
 The script recognizes each export by its shape, so you can run it on all three into the same
 folder. It writes one file per chat into `claude/`, `chatgpt/`, and `gemini/`, named by date and

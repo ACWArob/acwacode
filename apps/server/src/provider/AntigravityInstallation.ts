@@ -397,7 +397,7 @@ export const makeAntigravityInstallation = Effect.fn("AntigravityInstallation.ma
         if (yield* isWithdrawn(installed.version))
           return yield* installationError(
             "resolve",
-            `Antigravity ${installed.version} no longer works with this acwa desk release. Update it in Antigravity setup.`,
+            `Antigravity ${installed.version} no longer works with this kotrai release. Update it in Antigravity setup.`,
           );
         return installed;
       }

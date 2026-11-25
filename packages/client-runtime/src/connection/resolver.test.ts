@@ -183,7 +183,7 @@ describe("ConnectionResolver", () => {
       const error = yield* Effect.flip(broker.prepare(catalogEntry(target)));
 
       expect(error).toMatchObject({ reason: "unsupported" });
-      expect(error.message).toContain("Update acwa desk on Compatible environment");
+      expect(error.message).toContain("Update kotrai on Compatible environment");
     }),
   );
 

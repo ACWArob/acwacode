@@ -46,7 +46,7 @@ const damagedDatabaseError = (dbPath: string, cause: SqlError.SqlError) =>
     reason: new SqlError.UnknownError({
       cause,
       operation: "open",
-      message: `The acwa desk database at ${dbPath} is damaged or is not a SQLite database, so acwa desk cannot start. To recover, quit acwa desk, then move that file and any -wal and -shm files next to it out of the folder, or replace them with a backup. acwa desk creates a new database on the next start.`,
+      message: `The kotrai database at ${dbPath} is damaged or is not a SQLite database, so kotrai cannot start. To recover, quit kotrai, then move that file and any -wal and -shm files next to it out of the folder, or replace them with a backup. kotrai creates a new database on the next start.`,
     }),
   });
 

@@ -599,7 +599,7 @@ export const makeCloudflaredRelayClient = Effect.fn("cloudflared.make")(function
     if (!releaseAsset) {
       return yield* new RelayClientInstallError({
         reason: "unsupported_platform",
-        message: `acwa desk does not provide a managed relay client binary for ${platform}-${arch}.`,
+        message: `kotrai does not provide a managed relay client binary for ${platform}-${arch}.`,
       });
     }
 
