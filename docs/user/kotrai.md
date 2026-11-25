@@ -39,6 +39,13 @@ turn.
 Press **Note** next to send to post messages to the channel without running any agent. Press it
 again to go back to agents. Note mode lasts until you reload.
 
+## Watching agents work
+
+When an agent browses, it uses the built-in browser, so you can watch it in the **Browser** tab of
+the side panel next to the chat. When an agent makes a PDF, a web page or an image and links it in
+its reply, the file opens in the side panel as soon as the reply finishes. This needs the "Show
+your work" lines from the full force section below.
+
 ## Dashboard
 
 The dashboard shows every project at once. Open it with the grid button in the top bar or

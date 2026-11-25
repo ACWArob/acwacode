@@ -1,3 +1,5 @@
+import { openFileLink } from "../cabinet/board/openFileLink";
+import { visualOutputToOpen } from "./chat/visualOutput.logic";
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -1775,6 +1777,29 @@ export default function ChatView(props: ChatViewProps) {
   const activeProjectCwd = activeProject?.workspaceRoot ?? null;
   const activeThreadWorktreePath = activeThread?.worktreePath ?? null;
   const activeWorkspaceRoot = activeThreadWorktreePath ?? activeProjectCwd ?? undefined;
+  const visualOutputsHandled = useRef<{ key: string | null; ids: Set<string> }>({
+    key: null,
+    ids: new Set(),
+  });
+  const visualOutputMessages = embedded ? null : (serverProjection?.messages ?? null);
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- shows a file an agent just made in the side panel
+  useEffect(() => {
+    if (visualOutputMessages === null || activeThreadRef === null) return;
+    const handled = visualOutputsHandled.current;
+    if (handled.key !== activeThreadKey) {
+      // Only replies that finish while the thread is open get shown.
+      visualOutputsHandled.current = {
+        key: activeThreadKey,
+        ids: new Set(visualOutputMessages.map((message) => message.id)),
+      };
+      return;
+    }
+    const output = visualOutputToOpen(visualOutputMessages, handled.ids, activeWorkspaceRoot);
+    for (const message of visualOutputMessages) {
+      if (!message.streaming) handled.ids.add(message.id);
+    }
+    if (output !== null) openFileLink(activeThreadRef, output.path);
+  }, [visualOutputMessages, activeThreadKey, activeThreadRef, activeWorkspaceRoot]);
   const activeTerminalLaunchContext =
     terminalUiLaunchContext?.threadId === activeThreadId ? terminalUiLaunchContext : null;
   const liveIsGitRepo = gitStatusQuery.data?.isRepo;
