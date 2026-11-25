@@ -121,7 +121,12 @@ export class ManagedProjectFolders extends Context.Service<
     }) => Effect.Effect<Option.Option<string>, ScratchFolderError>;
     readonly namedProjectsRoot: string;
     /** Removes failed/cancelled creations' folders only while no project owns them. */
-    readonly createNamedProject: (input: { readonly name: string }) => Effect.Effect<
+    readonly createNamedProject: (input: {
+      readonly name: string;
+      readonly blank?: boolean;
+      /** Folder to create the project in; defaults to `namedProjectsRoot`. */
+      readonly root?: string;
+    }) => Effect.Effect<
       {
         readonly projectId: ProjectId;
         readonly workspaceRoot: string;
@@ -394,13 +399,12 @@ const make = Effect.gen(function* () {
 
   const claimNamedFolder = Effect.fn("ManagedProjectFolders.claimNamedFolder")(function* (
     name: string,
+    projectsRoot: string,
   ) {
     yield* fileSystem
-      .makeDirectory(namedProjectsRoot, { recursive: true })
+      .makeDirectory(projectsRoot, { recursive: true })
       .pipe(
-        Effect.mapError(
-          (cause) => new NamedProjectFolderError({ folder: namedProjectsRoot, cause }),
-        ),
+        Effect.mapError((cause) => new NamedProjectFolderError({ folder: projectsRoot, cause })),
       );
     const folderName = newProjectFolderName(name);
     const claimed = yield* claimFreeFolder(
@@ -409,17 +413,14 @@ const make = Effect.gen(function* () {
           attempt > MAX_NAMED_FOLDER_ATTEMPTS
             ? Option.none()
             : Option.some(
-                path.join(
-                  namedProjectsRoot,
-                  attempt === 1 ? folderName : `${folderName}-${attempt}`,
-                ),
+                path.join(projectsRoot, attempt === 1 ? folderName : `${folderName}-${attempt}`),
               ),
         ),
       (folder, cause) => new NamedProjectFolderError({ folder, cause }),
     );
     if (Option.isSome(claimed)) return claimed.value;
     return yield* new NamedProjectFolderError({
-      folder: path.join(namedProjectsRoot, folderName),
+      folder: path.join(projectsRoot, folderName),
       cause: `Every folder name for "${folderName}" is taken.`,
     });
   });
@@ -471,12 +472,16 @@ const make = Effect.gen(function* () {
   const createNamedProject: ManagedProjectFolders["Service"]["createNamedProject"] = Effect.fn(
     "ManagedProjectFolders.createNamedProject",
   )(function* (input) {
-    const workspaceRoot = yield* claimNamedFolder(input.name);
+    const workspaceRoot = yield* claimNamedFolder(input.name, input.root ?? namedProjectsRoot);
     const removeFolder = fileSystem.remove(workspaceRoot, { recursive: true }).pipe(Effect.ignore);
     const prepared = yield* Effect.all([
-      scaffoldRepository(workspaceRoot, input.name).pipe(
-        Effect.mapError((cause) => new NamedProjectFolderError({ folder: workspaceRoot, cause })),
-      ),
+      input.blank
+        ? Effect.undefined
+        : scaffoldRepository(workspaceRoot, input.name).pipe(
+            Effect.mapError(
+              (cause) => new NamedProjectFolderError({ folder: workspaceRoot, cause }),
+            ),
+          ),
       random
         .uuidV4()
         .pipe(Effect.mapError((cause) => new NamedProjectCreateError({ workspaceRoot, cause }))),

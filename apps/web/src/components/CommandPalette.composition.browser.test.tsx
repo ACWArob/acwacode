@@ -238,6 +238,14 @@ it("tells screen readers whether a new project will be published", async () => {
   await act(() => openCommandPalette({ open: "add-project" }));
   await page.getByText("New project", { exact: true }).click();
   await page.getByRole("combobox").fill("demo-project");
+  // A new project starts as an empty folder; publishing needs Git turned on first.
+  await expect
+    .element(page.getByRole("option", { name: /Create private repository/ }))
+    .not.toBeInTheDocument();
+  const git = page.getByRole("option", { name: /Set up Git/ });
+  await expect.element(git).toHaveAttribute("aria-checked", "false");
+  await git.click();
+  await expect.element(git).toHaveAttribute("aria-checked", "true");
   const option = page.getByRole("option", { name: /Create private repository/ });
   await expect.element(option).toHaveAttribute("aria-checked", "false");
   await option.click();

@@ -532,6 +532,8 @@ export type ProjectEnsureScratchResult = typeof ProjectEnsureScratchResult.Type;
 
 export const ProjectCreateNewInput = Schema.Struct({
   name: TrimmedNonEmptyString.check(Schema.isMaxLength(200)),
+  /** Just an empty folder: no Git repository and no starter files. */
+  blank: Schema.optionalKey(Schema.Boolean),
 });
 export type ProjectCreateNewInput = typeof ProjectCreateNewInput.Type;
 

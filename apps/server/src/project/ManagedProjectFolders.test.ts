@@ -470,6 +470,19 @@ it.effect("starts a named project as a committed repository, and suffixes a take
           "main",
         );
         assert.equal(yield* gitOutput(first.workspaceRoot, ["status", "--porcelain"]), "");
+
+        const blankRoot = path.join(baseDir, "code");
+        const blank = yield* folders.createNamedProject({
+          name: "Scratch Pad",
+          blank: true,
+          root: blankRoot,
+        });
+        assert.equal(blank.workspaceRoot, path.join(blankRoot, "scratch-pad"));
+        assert.deepStrictEqual(yield* fileSystem.readDirectory(blank.workspaceRoot), []);
+        assert.equal(
+          Option.getOrThrow(yield* projects.getById(blank.projectId)).workspaceRoot,
+          blank.workspaceRoot,
+        );
       }),
     ),
   ),

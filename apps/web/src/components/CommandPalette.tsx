@@ -608,6 +608,7 @@ function OpenCommandPaletteDialog(props: {
     readonly sourcesEnvironmentId: EnvironmentId | null;
   } | null>(null);
   const [newProjectPublishes, setNewProjectPublishes] = useState(false);
+  const [newProjectUsesGit, setNewProjectUsesGit] = useState(false);
   const [newProjectPublishKind, setNewProjectPublishKind] =
     useState<SourceControlProviderKind | null>(null);
   const [isCreatingNewProject, setIsCreatingNewProject] = useState(false);
@@ -1129,6 +1130,7 @@ function OpenCommandPaletteDialog(props: {
     setAddProjectCloneFlow(null);
     setNewProjectFlow({ environmentId, sourcesEnvironmentId });
     setNewProjectPublishes(false);
+    setNewProjectUsesGit(false);
     setNewProjectPublishKind(null);
     pushPaletteView({
       addonIcon: <FolderGit2Icon className={ADDON_ICON_CLASS} />,
@@ -1166,7 +1168,7 @@ function OpenCommandPaletteDialog(props: {
         value: `action:add-project:${environmentId}:new`,
         searchTerms: ["new project", "create", "empty", "repository", "git init"],
         title: "New project",
-        description: "Start a new Git repository from a name",
+        description: "Start an empty folder from a name",
         icon: <FolderGit2Icon className={ITEM_ICON_CLASS} />,
         keepOpen: true,
         run: async () => {
@@ -2226,7 +2228,8 @@ function OpenCommandPaletteDialog(props: {
       createNewProject({
         environmentId: newProjectFlow.environmentId,
         name: newProjectName,
-        publishTo: newProjectPublishes ? newProjectPublishTarget : null,
+        blank: !newProjectUsesGit,
+        publishTo: newProjectUsesGit && newProjectPublishes ? newProjectPublishTarget : null,
       }),
     );
     newProjectSubmittingRef.current = false;
@@ -2582,50 +2585,77 @@ function OpenCommandPaletteDialog(props: {
             },
           ],
         };
+  const newProjectGitItem: CommandPaletteActionItem = {
+    kind: "action",
+    value: "new-project:git",
+    searchTerms: [],
+    title: "Set up Git",
+    description: "Adds a Git repository and a README. Off: just an empty folder.",
+    icon: <FolderGit2Icon className={ITEM_ICON_CLASS} />,
+    titleTrailingContent: (
+      <span className="pointer-events-none ms-auto flex">
+        <Checkbox checked={newProjectUsesGit} tabIndex={-1} aria-hidden />
+      </span>
+    ),
+    ...(isCreatingNewProject ? { disabled: true } : {}),
+    keepOpen: true,
+    checked: newProjectUsesGit,
+    run: async () => {
+      setNewProjectUsesGit((usesGit) => !usesGit);
+    },
+  };
   const newProjectOptionGroups: CommandPaletteView["groups"] =
-    newProjectPublishTarget === null || newProjectPathPreview === null
+    newProjectPathPreview === null
       ? []
       : [
           {
             value: "new-project-options",
             label: "Options",
             items: [
-              {
-                kind: "action",
-                value: newProjectPublishToggleValue,
-                searchTerms: [],
-                title:
-                  newProjectPublishTargets.length > 1
-                    ? "Create private repository"
-                    : `Create private repository on ${newProjectPublishTarget.definition.label}`,
-                description:
-                  newProjectName.length > 0
-                    ? getNewProjectRepository(newProjectPublishTarget, newProjectPathPreview)
-                    : (newProjectPublishTarget.owner ??
-                      `Your ${newProjectPublishTarget.definition.label} account`),
-                icon: sourceControlHostIcon(newProjectPublishTarget.definition, ITEM_ICON_CLASS),
-                titleTrailingContent: (
-                  <span className="ms-auto flex items-center gap-2">
-                    {newProjectPublishTargets.length > 1 ? (
-                      <NewProjectPublishHostPicker
-                        disabled={isCreatingNewProject}
-                        targets={newProjectPublishTargets}
-                        value={newProjectPublishTarget.definition.kind}
-                        onValueChange={setNewProjectPublishKind}
-                      />
-                    ) : null}
-                    <span className="pointer-events-none flex">
-                      <Checkbox checked={newProjectPublishes} tabIndex={-1} aria-hidden />
-                    </span>
-                  </span>
-                ),
-                ...(isCreatingNewProject ? { disabled: true } : {}),
-                keepOpen: true,
-                checked: newProjectPublishes,
-                run: async () => {
-                  setNewProjectPublishes((publishes) => !publishes);
-                },
-              },
+              newProjectGitItem,
+              ...(newProjectPublishTarget === null || !newProjectUsesGit
+                ? []
+                : [
+                    {
+                      kind: "action",
+                      value: newProjectPublishToggleValue,
+                      searchTerms: [],
+                      title:
+                        newProjectPublishTargets.length > 1
+                          ? "Create private repository"
+                          : `Create private repository on ${newProjectPublishTarget.definition.label}`,
+                      description:
+                        newProjectName.length > 0
+                          ? getNewProjectRepository(newProjectPublishTarget, newProjectPathPreview)
+                          : (newProjectPublishTarget.owner ??
+                            `Your ${newProjectPublishTarget.definition.label} account`),
+                      icon: sourceControlHostIcon(
+                        newProjectPublishTarget.definition,
+                        ITEM_ICON_CLASS,
+                      ),
+                      titleTrailingContent: (
+                        <span className="ms-auto flex items-center gap-2">
+                          {newProjectPublishTargets.length > 1 ? (
+                            <NewProjectPublishHostPicker
+                              disabled={isCreatingNewProject}
+                              targets={newProjectPublishTargets}
+                              value={newProjectPublishTarget.definition.kind}
+                              onValueChange={setNewProjectPublishKind}
+                            />
+                          ) : null}
+                          <span className="pointer-events-none flex">
+                            <Checkbox checked={newProjectPublishes} tabIndex={-1} aria-hidden />
+                          </span>
+                        </span>
+                      ),
+                      ...(isCreatingNewProject ? { disabled: true } : {}),
+                      keepOpen: true,
+                      checked: newProjectPublishes,
+                      run: async () => {
+                        setNewProjectPublishes((publishes) => !publishes);
+                      },
+                    } satisfies CommandPaletteActionItem,
+                  ]),
             ],
           },
         ];
