@@ -155,6 +155,11 @@ Install Tailscale on both and sign in to the same tailnet. There are two ways to
 4. Create a pairing link (see [Pairing links](#pairing-links)), change its address to
    `http://<tailscale-ip>:3774`, and paste it into **Add environment** in the app.
 
+The mobile app has no agent picker, so council mode works by message from any app: send
+`council` on its own and every later message in that chat goes to Codex, Gemini and Claude in
+turn, with Claude answering last. Send `solo` to go back to one agent. Messages that start with
+`@` still go only to the agents they name.
+
 ### Phone browser
 
 1. Your tailnet needs MagicDNS and HTTPS certificates turned on; see

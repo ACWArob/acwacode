@@ -123,6 +123,7 @@ import * as CommandOutputHub from "./orchestration-v2/CommandOutputHub.ts";
 import * as McpAppRequests from "./mcpApps/McpAppRequests.ts";
 import * as ProviderSessionManager from "./orchestration-v2/ProviderSessionManager.ts";
 import * as ThreadLaunchService from "./orchestration-v2/ThreadLaunchService.ts";
+import * as CouncilMode from "./orchestration-v2/CouncilMode.ts";
 import * as ThreadMessageIntake from "./orchestration-v2/ThreadMessageIntake.ts";
 import * as DocumentText from "./provider/DocumentText.ts";
 import * as ScheduledTasks from "./scheduledTasks/ScheduledTaskService.ts";
@@ -1981,12 +1982,15 @@ export const layerWsRpc = (
                 .enqueueCommand(
                   (command.type === "prepared-run.retry"
                     ? threadLaunch.retryPreparation(command)
-                    : ThreadMessageIntake.dispatchCommand(
+                    : CouncilMode.dispatchWithCouncil(
                         ThreadManagementService.withCreationProvenance(command, {
                           createdBy: "user",
                           creationSource:
                             "creationSource" in command ? command.creationSource : "web",
                         }),
+                        ThreadMessageIntake.dispatchCommand,
+                      ).pipe(
+                        Effect.provideService(ProviderRegistry.ProviderRegistry, providerRegistry),
                       )
                   ).pipe(Effect.provide(intakeContext)),
                 )
