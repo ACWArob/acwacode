@@ -49,13 +49,19 @@ describe("revealServerTabs", () => {
   const floatingTabId = () => {
     return miniPlayerSource()?.tabId ?? null;
   };
+  const panelSurfaceId = () =>
+    useRightPanelStore.getState().byThreadKey[threadKey]?.activeSurfaceId;
 
-  it("floats revealed tabs, and only forced ones when floating previews are off", () => {
+  it("shows revealed tabs in the side panel, and only forced ones when previews are off", () => {
     setup();
+    const userActionRevision = useRightPanelStore.getState().getUserActionRevision(ref);
     revealServerTabs(ref, [tab("tab_plain")], { autoShowFloatingPreview: false });
-    expect(floatingTabId()).toBeNull();
+    expect(panelSurfaceId()).toBeUndefined();
     revealServerTabs(ref, [tab("tab_forced", true)], { autoShowFloatingPreview: false });
-    expect(floatingTabId()).toBe("tab_forced");
+    expect(panelSurfaceId()).toBe("browser:tab_forced");
+    expect(useRightPanelStore.getState().byThreadKey[threadKey]?.isOpen).toBe(true);
+    expect(floatingTabId()).toBeNull();
+    expect(useRightPanelStore.getState().getUserActionRevision(ref)).toBe(userActionRevision);
   });
 
   it("focuses a tab already in the panel instead of floating it when forced", () => {
@@ -158,7 +164,7 @@ describe("startAgentOpenedPreviews", () => {
       .byThreadKey[threadKeyToRead]?.surfaces.filter((surface) => surface.kind === "preview")
       .map((surface) => surface.id);
 
-  it("treats the first list as a baseline and floats tabs opened later", () => {
+  it("treats the first list as a baseline and shows tabs opened later in the panel", () => {
     using _following = following();
     reconcilePreviewServerSessions(ref, {
       sessions: [serverTab({ tabId: "tab_restored" })],
@@ -178,7 +184,11 @@ describe("startAgentOpenedPreviews", () => {
       serverEpoch,
       revision: 2,
     });
-    expect(floatingTabId()).toBe("tab_agent");
+    expect(floatingTabId()).toBeNull();
+    expect(useRightPanelStore.getState().byThreadKey[threadKey]?.activeSurfaceId).toBe(
+      "browser:tab_agent",
+    );
+    expect(useRightPanelStore.getState().byThreadKey[threadKey]?.isOpen).toBe(true);
   });
 
   it("reveals an existing tab only for a new reveal request", () => {
@@ -210,7 +220,7 @@ describe("startAgentOpenedPreviews", () => {
     expect(floatingTabId()).toBeNull();
   });
 
-  it("follows background threads and closes the floating browser when its session ends", () => {
+  it("follows background threads and closes the panel tab when its session ends", () => {
     using _following = following();
     const other = scopeThreadRef("env-1" as EnvironmentId, ThreadId.make("thread-2"));
     reconcilePreviewServerSessions(other, {
@@ -231,7 +241,7 @@ describe("startAgentOpenedPreviews", () => {
       serverEpoch,
       revision: 2,
     });
-    expect(floatingTabId()).toBe("tab_a");
+    expect(browserTabs()).toEqual(["browser:tab_a"]);
     applyPreviewServerEvent(ref, {
       type: "closed",
       threadId: "thread-1",
@@ -240,6 +250,6 @@ describe("startAgentOpenedPreviews", () => {
       serverEpoch,
       revision: 3,
     });
-    expect(floatingTabId()).toBeNull();
+    expect(browserTabs() ?? []).toEqual([]);
   });
 });

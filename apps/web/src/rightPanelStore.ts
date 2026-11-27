@@ -119,6 +119,8 @@ interface RightPanelStoreState {
   ) => void;
   openSideChat: (ref: ScopedThreadRef, threadId: ThreadId) => void;
   openBrowser: (ref: ScopedThreadRef, tabId: string | null) => void;
+  /** Like openBrowser, for a browser an agent opened: keyboard focus stays where it is. */
+  revealBrowser: (ref: ScopedThreadRef, tabId: string) => void;
   openFile: (ref: ScopedThreadRef, relativePath: string, line?: number) => void;
   /** Moves in place; "" opens the root explorer. folderTrail keeps the return path; keepSource opens beside the source. */
   navigateFolder: (
@@ -685,6 +687,18 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
               : current.surfaces;
             return upsertSurface({ ...current, surfaces: withoutPlaceholder }, surface);
           }),
+        ),
+      revealBrowser: (ref, tabId) =>
+        set((state) =>
+          automaticUpdate(state, scopedThreadKey(ref), (current) =>
+            upsertSurface(
+              {
+                ...current,
+                surfaces: current.surfaces.filter((entry) => entry.id !== "browser:new"),
+              },
+              browserSurface(tabId),
+            ),
+          ),
         ),
       openPullRequest: (ref, target) =>
         set((state) =>

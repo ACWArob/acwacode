@@ -2,7 +2,7 @@ import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { PreviewSessionSnapshot, ScopedThreadRef } from "@t3tools/contracts";
 
 import { getClientSettings } from "../../hooks/useSettings";
-import { browserMiniPlayerSource, usePreviewMiniPlayerStore } from "../../previewMiniPlayerStore";
+import { usePreviewMiniPlayerStore } from "../../previewMiniPlayerStore";
 import {
   previewStateAtom,
   previewThreadRefsAtom,
@@ -13,8 +13,8 @@ import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { readEnvironmentSupportsServerBrowser } from "../../state/entities";
 
 /**
- * Shows browsers an agent or another client revealed for a thread: floating
- * over chat, or focusing an existing panel tab when the reveal is forced.
+ * Shows browsers an agent or another client revealed for a thread in the side panel, or
+ * focuses an existing panel tab when the reveal is forced.
  */
 export function revealServerTabs(
   threadRef: ScopedThreadRef,
@@ -33,7 +33,8 @@ export function revealServerTabs(
     if (surface && force) {
       useRightPanelStore.getState().revealSurface(threadRef, surface.id);
     } else if (!surface) {
-      usePreviewMiniPlayerStore.getState().open(threadRef, browserMiniPlayerSource(session.tabId));
+      // The side panel keeps the agent's browser next to the chat instead of over it.
+      useRightPanelStore.getState().revealBrowser(threadRef, session.tabId);
     }
   }
 }
