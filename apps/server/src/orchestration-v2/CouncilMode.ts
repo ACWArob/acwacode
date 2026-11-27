@@ -46,6 +46,9 @@ export function councilActive(
   return false;
 }
 
+// Matches the web client's auto-routing reserve: council is optional, so it keeps the last 15%.
+const COUNCIL_USAGE_LIMIT = 85;
+
 // Claude answers last so it can pull the others together.
 const COUNCIL_SEATS = [
   { driver: "codex", model: /\bsol\b/i },
@@ -67,12 +70,12 @@ export function councilMembers(providers: ReadonlyArray<ServerProvider>): Array<
         candidate.auth.status !== "unauthenticated",
     );
     if (!provider) return [];
-    // A model whose usage window is fully used sits this one out until it resets.
+    // A model nearly out of usage sits this one out, so council never drains it.
     const usable = provider.models.filter(
       (candidate) =>
         !(provider.usageLimits?.windows ?? []).some(
           (window) =>
-            window.usedPercent >= 100 &&
+            window.usedPercent >= COUNCIL_USAGE_LIMIT &&
             (window.modelIds === undefined || window.modelIds.includes(candidate.slug)),
         ),
     );

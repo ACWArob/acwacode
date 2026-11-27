@@ -45,6 +45,16 @@ describe("resolveLastAgentSelection", () => {
       { runs, route: generalCodex, isPrepaid: (s) => s === claude },
       codex,
     ],
+    [
+      "the general pick instead of a last agent that is nearly out of usage",
+      { runs, route: generalCodex, canContinue: (s) => s !== claude },
+      codex,
+    ],
+    [
+      "a picked agent that is nearly out of usage",
+      { runs, pick: claude, canContinue: () => false },
+      claude,
+    ],
     ["the picked agent over a clear topic", { runs, route: topicCodex, pick: claude }, claude],
     [
       "the topic when the picked agent is gone",

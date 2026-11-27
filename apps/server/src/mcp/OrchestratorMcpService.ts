@@ -441,8 +441,20 @@ function providerConstraints(
   if (provider.auth.status === "unauthenticated") {
     constraints.push("Provider is not authenticated.");
   }
+  // Keeps the rest of a nearly used-up plan for the user instead of draining it on child tasks.
+  const nearlyUsedUp = (provider.usageLimits?.windows ?? []).find(
+    (window) => window.modelIds === undefined && window.usedPercent >= CHILD_TASK_USAGE_LIMIT,
+  );
+  if (nearlyUsedUp !== undefined) {
+    constraints.push(
+      `Usage is at ${Math.round(nearlyUsedUp.usedPercent)}% of its ${nearlyUsedUp.label} limit; the rest is kept for the user. Use another provider.`,
+    );
+  }
   return constraints;
 }
+
+// Same reserve the web client keeps when it routes messages on its own.
+const CHILD_TASK_USAGE_LIMIT = 85;
 
 /** t3_thread_launch keeps a selection as given, so it can hold options its model does not have. */
 function knownOptions(

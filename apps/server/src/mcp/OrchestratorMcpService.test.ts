@@ -1850,6 +1850,7 @@ describe("OrchestratorMcpService provider resolution", () => {
         const disabledWithoutAdapterInstanceId = ProviderInstanceId.make("codex-without-adapter");
         const projectDisabledInstanceId = ProviderInstanceId.make("codex-project-off");
         const forkOnlyInstanceId = ProviderInstanceId.make("forkOnly");
+        const busyCodexInstanceId = ProviderInstanceId.make("codex-busy");
         const forkShadow = yield* buildUnavailableProviderSnapshot({
           driverKind: "forkOnly",
           instanceId: forkOnlyInstanceId,
@@ -1899,6 +1900,17 @@ describe("OrchestratorMcpService provider resolution", () => {
             driver: ProviderDriverKind.make("codex"),
             model: "gpt-5.4",
           }),
+          {
+            ...providerSnapshot({
+              instanceId: busyCodexInstanceId,
+              driver: ProviderDriverKind.make("codex"),
+              model: "gpt-5.4",
+            }),
+            usageLimits: {
+              checkedAt: "2026-09-13T00:00:00.000Z",
+              windows: [{ id: "5h", kind: "session", label: "5-hour", usedPercent: 91.6 }],
+            },
+          },
           forkShadow,
         ];
         const layerDependencies = Layer.mergeAll(
@@ -1922,6 +1934,7 @@ describe("OrchestratorMcpService provider resolution", () => {
                 enabled: true,
               },
               [projectDisabledInstanceId]: { driver: ProviderDriverKind.make("codex") },
+              [busyCodexInstanceId]: { driver: ProviderDriverKind.make("codex"), enabled: true },
             },
             projectSettingsOverrides: {
               [projectId]: {
@@ -1934,6 +1947,7 @@ describe("OrchestratorMcpService provider resolution", () => {
           }),
           adapterRegistryLayer([
             codexInstanceId,
+            busyCodexInstanceId,
             projectDisabledInstanceId,
             ProviderInstanceId.make("claudeAgent"),
             ProviderInstanceId.make("pi"),
@@ -2027,6 +2041,12 @@ describe("OrchestratorMcpService provider resolution", () => {
             "No V2 provider adapter is registered.",
             "Driver 'forkOnly' is not registered in this build.",
             "Provider instance is disabled.",
+          ]);
+
+          const busy = byId.get(busyCodexInstanceId);
+          assert.isFalse(busy!.canRunChildTask);
+          assert.deepEqual(busy!.constraints, [
+            "Usage is at 92% of its 5-hour limit; the rest is kept for the user. Use another provider.",
           ]);
         }).pipe(Effect.provide(layerOrchestratorService.pipe(Layer.provide(layerDependencies))));
       }),

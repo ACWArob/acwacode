@@ -104,7 +104,7 @@ it("seats each ready subscription agent with its premier model, Claude last", ()
   const usedUp = {
     usageLimits: {
       checkedAt: "2026-11-25T00:00:00.000Z",
-      windows: [{ id: "5h", kind: "session", label: "5h", usedPercent: 100 }],
+      windows: [{ id: "5h", kind: "session", label: "5h", usedPercent: 90 }],
     },
   };
   assert.deepStrictEqual(

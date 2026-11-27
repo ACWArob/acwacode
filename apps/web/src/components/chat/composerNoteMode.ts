@@ -79,6 +79,8 @@ export function resolveLastAgentSelection(input: {
   readonly pick: ModelSelection | null;
   /** Prepaid-credit agents (OpenRouter through OpenCode) answer only when picked or @mentioned. */
   readonly isPrepaid?: (selection: ModelSelection) => boolean;
+  /** Whether the last agent may keep the conversation without being asked, e.g. usage to spare. */
+  readonly canContinue?: (selection: ModelSelection) => boolean;
 }): ModelSelection | null {
   if (input.noteMode) return null;
   if (input.pick && input.isRoutable(input.pick)) return input.pick;
@@ -90,6 +92,7 @@ export function resolveLastAgentSelection(input: {
   if (
     latest !== null &&
     input.isRoutable(latest.modelSelection) &&
+    (input.canContinue === undefined || input.canContinue(latest.modelSelection)) &&
     (input.isPrepaid === undefined || !input.isPrepaid(latest.modelSelection))
   )
     return latest.modelSelection;

@@ -104,6 +104,11 @@ describe("hasUsageLeft", () => {
     expect(withUsageLeft(codex([{ usedPercent: 100 }]))).toBeNull();
   });
 
+  it("keeps a reserve when given a lower limit", () => {
+    expect(hasUsageLeft(codex([{ usedPercent: 90 }]), "gpt-6.2-sol")).toBe(true);
+    expect(hasUsageLeft(codex([{ usedPercent: 90 }]), "gpt-6.2-sol", 85)).toBe(false);
+  });
+
   it("keeps models a model-specific limit doesn't cover", () => {
     const entry = codex([{ usedPercent: 100, modelIds: ["gpt-6-astra"] }]);
     expect(hasUsageLeft(entry, "gpt-6.2-sol")).toBe(true);

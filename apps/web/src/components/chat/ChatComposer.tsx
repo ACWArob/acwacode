@@ -277,6 +277,7 @@ import { useManagedPolicy } from "../../state/managedPolicy";
 import { hasProviderSetup } from "./ProviderStatusBanner";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
 import {
+  AUTO_ROUTE_USAGE_LIMIT,
   hasUsageLeft,
   isProviderInstancePickerReady,
   type ProviderInstanceEntry,
@@ -1065,7 +1066,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           route: autoRoute(
             prompt,
             routableProviderInstanceEntries.flatMap((entry) => {
-              const usable = isProviderInstancePickerReady(entry) ? withUsageLeft(entry) : null;
+              const usable = isProviderInstancePickerReady(entry)
+                ? withUsageLeft(entry, AUTO_ROUTE_USAGE_LIMIT)
+                : null;
               return usable ? [usable] : [];
             }),
             selectedModelSelection,
@@ -1080,6 +1083,13 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                 entry.instanceId === selection.instanceId &&
                 isProviderInstancePickerReady(entry) &&
                 hasUsageLeft(entry, selection.model),
+            ),
+          // Nearly used up: it keeps answering only when picked, so it doesn't run out mid-task.
+          canContinue: (selection) =>
+            routableProviderInstanceEntries.some(
+              (entry) =>
+                entry.instanceId === selection.instanceId &&
+                hasUsageLeft(entry, selection.model, AUTO_ROUTE_USAGE_LIMIT),
             ),
         })
       : null;

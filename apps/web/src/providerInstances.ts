@@ -54,20 +54,29 @@ export function isProviderInstancePickerReady(entry: ProviderInstanceEntry): boo
 }
 
 /**
- * False once a usage window covering this model is fully used. A window that reset shows less
- * than 100% on the next usage check, so the agent comes back on its own.
+ * Above this share of any usage window, the app stops choosing an agent on its own and keeps the
+ * rest for when the user asks for it, so the agent doesn't run out mid-task.
  */
-export function hasUsageLeft(entry: ProviderInstanceEntry, model: string): boolean {
+export const AUTO_ROUTE_USAGE_LIMIT = 85;
+
+/**
+ * False once a usage window covering this model reaches `limit` percent. A window that reset
+ * shows a lower share on the next usage check, so the agent comes back on its own.
+ */
+export function hasUsageLeft(entry: ProviderInstanceEntry, model: string, limit = 100): boolean {
   return !(entry.snapshot.usageLimits?.windows ?? []).some(
     (window) =>
-      window.usedPercent >= 100 &&
+      window.usedPercent >= limit &&
       (window.modelIds === undefined || window.modelIds.includes(model)),
   );
 }
 
-/** The entry with only the models that still have usage left, or null when none do. */
-export function withUsageLeft(entry: ProviderInstanceEntry): ProviderInstanceEntry | null {
-  const models = entry.models.filter((model) => hasUsageLeft(entry, model.slug));
+/** The entry with only the models under `limit` percent of their usage, or null when none are. */
+export function withUsageLeft(
+  entry: ProviderInstanceEntry,
+  limit = 100,
+): ProviderInstanceEntry | null {
+  const models = entry.models.filter((model) => hasUsageLeft(entry, model.slug, limit));
   return models.length === 0 ? null : { ...entry, models };
 }
 
