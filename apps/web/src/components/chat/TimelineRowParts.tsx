@@ -207,7 +207,7 @@ export function CompactMessageRow({
   return (
     <div
       data-compact-message-row=""
-      className="group/compact-message relative flex min-w-0 items-baseline gap-2.5 py-channel-message pr-5 pl-3 text-13 leading-channel hover:bg-foreground/[0.025]"
+      className="group/compact-message relative flex min-w-0 items-baseline gap-2.5 py-channel-message pr-5 pl-3 text-13 leading-channel hover:bg-foreground/[0.025] pointer-fine:pr-21"
     >
       <Tooltip>
         <TooltipTrigger
@@ -229,8 +229,9 @@ export function CompactMessageRow({
   );
 }
 
+// Sits in the row's own right gutter so it never covers this message's or the previous one's text.
 export const MESSAGE_ACTIONS_CLASS =
-  "absolute -top-2 right-4 z-10 flex items-center gap-0.5 rounded-md border border-border bg-background p-0.5 opacity-0 shadow-sm group-hover/compact-message:opacity-100 group-focus-within/compact-message:opacity-100 focus-within:opacity-100 pointer-coarse:static pointer-coarse:mt-1 pointer-coarse:w-fit pointer-coarse:opacity-100";
+  "absolute top-0.5 right-2 z-10 flex items-center gap-0.5 rounded-md border border-border bg-background p-0.5 opacity-0 shadow-sm group-hover/compact-message:opacity-100 group-focus-within/compact-message:opacity-100 focus-within:opacity-100 pointer-coarse:static pointer-coarse:mt-1 pointer-coarse:w-fit pointer-coarse:opacity-100";
 
 export function TimelineRowTimestamp({
   createdAt,

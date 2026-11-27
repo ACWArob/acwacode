@@ -1044,7 +1044,7 @@ function UserMessageIntentMarker({
       <TooltipTrigger
         render={
           <div
-            className="me-1 flex items-center justify-end gap-1 text-xs leading-none text-muted-foreground"
+            className="me-1.5 inline-flex items-center gap-1 align-baseline text-xs leading-none text-muted-foreground"
             data-user-message-intent={intent}
           />
         }
