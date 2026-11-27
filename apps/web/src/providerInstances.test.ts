@@ -12,10 +12,12 @@ import {
   deriveProviderEntriesByEnvironment,
   deriveProviderInstanceEntries,
   getDefaultProviderInstanceModel,
+  hasUsageLeft,
   isProviderInstancePickerReady,
   resolveDefaultProviderModelSelection,
   resolveSelectableProviderInstance,
   shouldShowInstanceBadge,
+  withUsageLeft,
 } from "./providerInstances";
 
 function provider(input: {
@@ -70,6 +72,44 @@ describe("isProviderInstancePickerReady", () => {
 
     expect(entry?.status).toBe("ready");
     expect(entry && isProviderInstancePickerReady(entry)).toBe(false);
+  });
+});
+
+describe("hasUsageLeft", () => {
+  const codex = (windows: ReadonlyArray<{ usedPercent: number; modelIds?: string[] }>) =>
+    deriveProviderInstanceEntries([
+      {
+        ...provider({
+          provider: ProviderDriverKind.make("codex"),
+          instanceId: "codex",
+          models: [model("gpt-6.2-sol"), model("gpt-6-astra")],
+        }),
+        usageLimits: {
+          checkedAt: "2026-01-01T00:00:00.000Z",
+          windows: windows.map((window, index) => ({
+            id: `w${index}`,
+            kind: "session" as const,
+            label: "5h",
+            ...window,
+          })),
+        },
+      },
+    ])[0]!;
+
+  it("skips an agent once a usage window is fully used", () => {
+    expect(hasUsageLeft(codex([{ usedPercent: 49 }]), "gpt-6.2-sol")).toBe(true);
+    expect(hasUsageLeft(codex([{ usedPercent: 49 }, { usedPercent: 100 }]), "gpt-6.2-sol")).toBe(
+      false,
+    );
+    expect(withUsageLeft(codex([{ usedPercent: 100 }]))).toBeNull();
+  });
+
+  it("keeps models a model-specific limit doesn't cover", () => {
+    const entry = codex([{ usedPercent: 100, modelIds: ["gpt-6-astra"] }]);
+    expect(hasUsageLeft(entry, "gpt-6.2-sol")).toBe(true);
+    expect(withUsageLeft(entry)?.models.map((candidate) => candidate.slug)).toEqual([
+      "gpt-6.2-sol",
+    ]);
   });
 });
 

@@ -67,10 +67,19 @@ export function councilMembers(providers: ReadonlyArray<ServerProvider>): Array<
         candidate.auth.status !== "unauthenticated",
     );
     if (!provider) return [];
+    // A model whose usage window is fully used sits this one out until it resets.
+    const usable = provider.models.filter(
+      (candidate) =>
+        !(provider.usageLimits?.windows ?? []).some(
+          (window) =>
+            window.usedPercent >= 100 &&
+            (window.modelIds === undefined || window.modelIds.includes(candidate.slug)),
+        ),
+    );
     const model =
-      (seat.model && provider.models.find((candidate) => seat.model.test(candidate.slug))) ||
-      provider.models.find((candidate) => candidate.isDefault) ||
-      provider.models[0];
+      (seat.model && usable.find((candidate) => seat.model.test(candidate.slug))) ||
+      usable.find((candidate) => candidate.isDefault) ||
+      usable[0];
     return model ? [{ instanceId: provider.instanceId, model: model.slug }] : [];
   });
 }

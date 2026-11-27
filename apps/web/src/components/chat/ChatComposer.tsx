@@ -276,7 +276,12 @@ import { Button } from "../ui/button";
 import { useManagedPolicy } from "../../state/managedPolicy";
 import { hasProviderSetup } from "./ProviderStatusBanner";
 import { type AppModelOption, getAppModelOptionsForInstance } from "../../modelSelection";
-import { isProviderInstancePickerReady, type ProviderInstanceEntry } from "../../providerInstances";
+import {
+  hasUsageLeft,
+  isProviderInstancePickerReady,
+  type ProviderInstanceEntry,
+  withUsageLeft,
+} from "../../providerInstances";
 import type { UnifiedSettings } from "@t3tools/contracts/settings";
 import { isVideoAttachment, type SessionPhase, type Thread } from "../../types";
 import { type ComposerPromptHistoryPosition } from "./composerPromptHistory";
@@ -1059,16 +1064,22 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           noteMode,
           route: autoRoute(
             prompt,
-            routableProviderInstanceEntries.filter(isProviderInstancePickerReady),
+            routableProviderInstanceEntries.flatMap((entry) => {
+              const usable = isProviderInstancePickerReady(entry) ? withUsageLeft(entry) : null;
+              return usable ? [usable] : [];
+            }),
             selectedModelSelection,
           ),
           pick: agentPick,
           // OpenRouter models through OpenCode run on small prepaid credits.
           isPrepaid: (selection) => selection.model.startsWith("openrouter/"),
+          // An agent whose usage is used up is skipped, even when picked, until it resets.
           isRoutable: (selection) =>
             routableProviderInstanceEntries.some(
               (entry) =>
-                entry.instanceId === selection.instanceId && isProviderInstancePickerReady(entry),
+                entry.instanceId === selection.instanceId &&
+                isProviderInstancePickerReady(entry) &&
+                hasUsageLeft(entry, selection.model),
             ),
         })
       : null;

@@ -101,6 +101,19 @@ it("seats each ready subscription agent with its premier model, Claude last", ()
     councilMembers([provider("codex", "codex", ["gpt-6.2-sol"], { status: "error" })]),
     [],
   );
+  const usedUp = {
+    usageLimits: {
+      checkedAt: "2026-11-25T00:00:00.000Z",
+      windows: [{ id: "5h", kind: "session", label: "5h", usedPercent: 100 }],
+    },
+  };
+  assert.deepStrictEqual(
+    councilMembers([
+      provider("codex", "codex", ["gpt-6.2-sol"], usedUp),
+      ...providers.slice(0, 1),
+    ]).map((selection) => selection.model),
+    ["claude-opus-5-5"],
+  );
 });
 
 it.effect("turns council and solo into notes that start no run", () =>

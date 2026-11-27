@@ -53,6 +53,24 @@ export function isProviderInstancePickerReady(entry: ProviderInstanceEntry): boo
   return entry.enabled && entry.isAvailable && entry.status === "ready";
 }
 
+/**
+ * False once a usage window covering this model is fully used. A window that reset shows less
+ * than 100% on the next usage check, so the agent comes back on its own.
+ */
+export function hasUsageLeft(entry: ProviderInstanceEntry, model: string): boolean {
+  return !(entry.snapshot.usageLimits?.windows ?? []).some(
+    (window) =>
+      window.usedPercent >= 100 &&
+      (window.modelIds === undefined || window.modelIds.includes(model)),
+  );
+}
+
+/** The entry with only the models that still have usage left, or null when none do. */
+export function withUsageLeft(entry: ProviderInstanceEntry): ProviderInstanceEntry | null {
+  const models = entry.models.filter((model) => hasUsageLeft(entry, model.slug));
+  return models.length === 0 ? null : { ...entry, models };
+}
+
 export function isProviderInstancePickerVisible(entry: ProviderInstanceEntry): boolean {
   return entry.enabled;
 }
